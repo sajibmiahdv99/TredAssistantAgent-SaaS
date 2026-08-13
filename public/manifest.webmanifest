@@ -1,0 +1,15 @@
+{
+  "name": "Hermes Auto-Trading",
+  "short_name": "Hermes",
+  "description": "Auto-trade Telegram crypto signals across your exchanges with built-in risk controls.",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0b1220",
+  "background_color": "#0b1220",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
