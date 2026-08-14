@@ -14,9 +14,7 @@ const PORT = Number(process.env.PORT ?? 3000);
 const HOST = process.env.HOST ?? "0.0.0.0";
 
 // Load the built server handler
-const { default: serverHandler } = await import(
-  join(__dirname, "dist/server/server.js")
-);
+const { default: serverHandler } = await import(join(__dirname, "dist/server/server.js"));
 
 async function toNodeRequest(req) {
   const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
