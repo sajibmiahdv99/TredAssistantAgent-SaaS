@@ -2,16 +2,13 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Install bun globally (faster than npm for this project)
-RUN npm install -g bun@latest
-
 # Copy dependency manifests
-COPY package.json bun.lock bunfig.toml ./
-RUN bun install --frozen-lockfile
+COPY package.json package-lock.json ./
+RUN npm ci --legacy-peer-deps --no-audit --no-fund
 
 # Copy source and build
 COPY . .
-RUN bun run build
+RUN npm run build
 
 # ---- Production stage ----
 FROM node:22-alpine AS runner
