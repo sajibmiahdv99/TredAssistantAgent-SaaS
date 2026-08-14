@@ -3,7 +3,7 @@
 // No CCXT — Workers-compatible fetch + HMAC only.
 
 import { createHmac } from "crypto";
-import { paperPlace, paperCancel, paperFetch, paperValidate } from "./paperExecutor.server";
+import { paperPlace, paperCancel, paperFetch, paperValidate } from "./paperExecutor.server.ts";
 
 export type PlaceOrderInput = {
   symbol: string; // e.g. "BTCUSDT"

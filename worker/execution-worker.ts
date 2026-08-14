@@ -15,8 +15,8 @@ import {
   placeExchangeOrder,
   type ExchangeCreds,
   type PlaceOrderInput,
-} from "../src/lib/exchanges/executor.server";
-import { decryptSecret } from "../src/lib/crypto.server";
+} from "../src/lib/exchanges/executor.server.ts";
+import { decryptSecret } from "../src/lib/crypto.server.ts";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // ---- Config ---------------------------------------------------------------

@@ -28,4 +28,4 @@ ENV HOST=0.0.0.0
 ENV PORT=3000
 
 # Run with node (the built output is a Node.js h3 server)
-CMD ["node", "dist/server/index.mjs"]
+CMD ["node", "dist/server/server.js"]
