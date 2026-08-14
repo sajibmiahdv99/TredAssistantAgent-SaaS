@@ -1,12 +1,12 @@
-# Hermes Execution Worker Contract
+# Execution Worker Contract
 
-Hermes runs on Node.js / a self-hosted server — edge runtime has no
+The app runs on Node.js / a self-hosted server — edge runtime has no
 filesystem and no long-running TCP connections, so MetaTrader 5 (native DLL)
 and most exchange WebSocket order routers cannot run inside the app.
 
 Execution therefore happens in an **external worker** the user hosts (VPS,
-home machine, container). The worker pulls queued orders, places them with
-the broker / exchange, and reports the fill back.
+home machine, container). The worker polls queued orders, places them with the
+broker / exchange, and reports the fill back.
 
 ## Order lifecycle
 
@@ -30,18 +30,63 @@ its own orders.
 Both endpoints are TanStack server functions; call them as RPC over HTTPS.
 
 ### `claimQueuedOrders({ limit })`
-
 - Returns up to `limit` orders with `status='queued'`.
 - Server flips them to `status='dispatched'` atomically so a second poll
   does not re-deliver them.
 
 ### `reportExecution({ orderId, status, fillPrice?, filledQuantity?, pnl?, exchangeOrderId?, errorMessage? })`
-
 - `status`: one of `filled | partial | open | cancelled | rejected | closed`.
 - Worker calls this after the broker confirms, and again on position close
   with the final PnL.
 
-## Recommended worker loop
+## Reference implementation (shipped in this repo)
+
+`worker/execution-worker.ts` — a production-ready service-role daemon that
+implements the full loop without an MT5 dependency:
+
+- **Claim**: polls `orders` (status `queued` → `dispatched`, ordered by
+  `created_at`, limit configurable via `WORKER_CLAIM_LIMIT`, default 10).
+- **Place**: loads the user's `exchange_accounts` row, decrypts API creds
+  with `EXCHANGE_ENCRYPTION_KEY`, and calls `placeExchangeOrder` (Binance /
+  Bybit / OKX / KuCoin / MEXC / bridge adapters).
+- **Report**: writes `status` / `exchange_order_id` / `fill_price` /
+  `filled_quantity` back to `orders` and appends an `order_events` row for
+  every transition.
+- **Cancels**: processes `cancel_requested=true` orders against the live
+  exchange (or marks cancelled locally when no exchange ref exists).
+- **Reconcile**: for `open`/`partial` orders with an exchange ref, polls the
+  exchange position; when the position is flat it marks the order `closed`
+  and records PnL.
+- **Watchdog**: `dispatched` orders older than 10 minutes with no fill
+  report and no exchange ref are marked `rejected` so they never stall.
+
+### Running it
+
+```sh
+# Env required (same values as the app's .env):
+#   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, EXCHANGE_ENCRYPTION_KEY
+# Optional: WORKER_INTERVAL_MS (default 5000), WORKER_CLAIM_LIMIT (default 10)
+
+npm run worker
+```
+
+Run it as a long-lived process (systemd unit, `docker compose` service, or
+`nohup`) — it loops forever every `WORKER_INTERVAL_MS`.
+
+### Docker
+
+The worker can run as a sibling container using the same image:
+
+```yaml
+  worker:
+    build: .
+    command: ["npm", "run", "worker"]
+    env_file: .env
+    restart: unless-stopped
+    networks: [traefik-network]
+```
+
+## Recommended worker loop (custom / MT5)
 
 ```
 loop forever:

@@ -29,3 +29,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+    command: ["npx", "tsx", "worker/execution-worker.ts"]
+    restart: unless-stopped
