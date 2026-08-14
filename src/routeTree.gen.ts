@@ -50,6 +50,7 @@ import { Route as AuthenticatedAppRiskOptimizerRouteImport } from './routes/_aut
 import { Route as AuthenticatedAppSourcesRouteImport } from './routes/_authenticated/app.sources'
 import { Route as AuthenticatedAppSupportRouteImport } from './routes/_authenticated/app.support'
 import { Route as AuthenticatedAppTradeHistoryRouteImport } from './routes/_authenticated/app.trade-history'
+import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicPaymentWebhookRouteImport } from './routes/api/public/payment-webhook'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram-webhook'
@@ -288,6 +289,11 @@ const AuthenticatedAppTradeHistoryRoute =
     path: '/trade-history',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
+  id: '/api/public/health',
+  path: '/api/public/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentWebhookRoute = ApiPublicPaymentWebhookRouteImport.update({
   id: '/api/public/payment-webhook',
   path: '/api/public/payment-webhook',
@@ -397,6 +403,7 @@ export interface FileRoutesByFullPath {
   '/app/sources': typeof AuthenticatedAppSourcesRoute
   '/app/support': typeof AuthenticatedAppSupportRoute
   '/app/trade-history': typeof AuthenticatedAppTradeHistoryRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/payment-webhook': typeof ApiPublicPaymentWebhookRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
@@ -449,6 +456,7 @@ export interface FileRoutesByTo {
   '/app/sources': typeof AuthenticatedAppSourcesRoute
   '/app/support': typeof AuthenticatedAppSupportRoute
   '/app/trade-history': typeof AuthenticatedAppTradeHistoryRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/payment-webhook': typeof ApiPublicPaymentWebhookRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
@@ -505,6 +513,7 @@ export interface FileRoutesById {
   '/_authenticated/app/sources': typeof AuthenticatedAppSourcesRoute
   '/_authenticated/app/support': typeof AuthenticatedAppSupportRoute
   '/_authenticated/app/trade-history': typeof AuthenticatedAppTradeHistoryRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/payment-webhook': typeof ApiPublicPaymentWebhookRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
@@ -561,6 +570,7 @@ export interface FileRouteTypes {
     | '/app/sources'
     | '/app/support'
     | '/app/trade-history'
+    | '/api/public/health'
     | '/api/public/payment-webhook'
     | '/api/public/stripe-webhook'
     | '/api/public/telegram-webhook'
@@ -613,6 +623,7 @@ export interface FileRouteTypes {
     | '/app/sources'
     | '/app/support'
     | '/app/trade-history'
+    | '/api/public/health'
     | '/api/public/payment-webhook'
     | '/api/public/stripe-webhook'
     | '/api/public/telegram-webhook'
@@ -668,6 +679,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/sources'
     | '/_authenticated/app/support'
     | '/_authenticated/app/trade-history'
+    | '/api/public/health'
     | '/api/public/payment-webhook'
     | '/api/public/stripe-webhook'
     | '/api/public/telegram-webhook'
@@ -694,6 +706,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicPaymentWebhookRoute: typeof ApiPublicPaymentWebhookRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
@@ -997,6 +1010,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppTradeHistoryRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/api/public/health': {
+      id: '/api/public/health'
+      path: '/api/public/health'
+      fullPath: '/api/public/health'
+      preLoaderRoute: typeof ApiPublicHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payment-webhook': {
       id: '/api/public/payment-webhook'
       path: '/api/public/payment-webhook'
@@ -1185,6 +1205,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicPaymentWebhookRoute: ApiPublicPaymentWebhookRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,

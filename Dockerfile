@@ -21,6 +21,7 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/worker ./worker
 COPY --from=builder /app/src ./src
+COPY --from=builder /app/serve.mjs ./serve.mjs
 COPY --from=builder /app/.env.example ./.env
 
 EXPOSE 3000
@@ -29,4 +30,4 @@ ENV HOST=0.0.0.0
 ENV PORT=3000
 
 # Run with node (the built output is a Node.js h3 server)
-CMD ["node", "dist/server/server.js"]
+CMD ["node", "serve.mjs"]
