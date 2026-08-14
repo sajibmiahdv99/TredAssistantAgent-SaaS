@@ -18,11 +18,18 @@ export const getMyKillSwitch = createServerFn({ method: "GET" })
 export const setMyKillSwitch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({
-      enabled: z.boolean(),
-      hours: z.number().int().min(1).max(24 * 30).optional(),
-      reason: z.string().max(200).optional(),
-    }).parse(d),
+    z
+      .object({
+        enabled: z.boolean(),
+        hours: z
+          .number()
+          .int()
+          .min(1)
+          .max(24 * 30)
+          .optional(),
+        reason: z.string().max(200).optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

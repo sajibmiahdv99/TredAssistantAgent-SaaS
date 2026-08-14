@@ -93,7 +93,8 @@ export function SecurityMfa() {
   }
 
   async function removeFactor(factorId: string) {
-    if (!confirm("Remove this authenticator? You'll no longer be prompted for a code at sign-in.")) return;
+    if (!confirm("Remove this authenticator? You'll no longer be prompted for a code at sign-in."))
+      return;
     setBusy(true);
     try {
       const { error } = await supabase.auth.mfa.unenroll({ factorId });
@@ -116,13 +117,17 @@ export function SecurityMfa() {
         <h3 className="text-base font-semibold">Two-factor authentication</h3>
       </div>
       <p className="text-sm text-muted-foreground">
-        Add a time-based one-time password (TOTP) from an authenticator app like 1Password, Authy, or Google Authenticator. Strongly recommended since your exchange API keys are stored here.
+        Add a time-based one-time password (TOTP) from an authenticator app like 1Password, Authy,
+        or Google Authenticator. Strongly recommended since your exchange API keys are stored here.
       </p>
 
       {verifiedTotp.length > 0 && (
         <div className="mt-5 space-y-2">
           {verifiedTotp.map((f) => (
-            <div key={f.id} className="flex items-center justify-between rounded-md border border-border p-3">
+            <div
+              key={f.id}
+              className="flex items-center justify-between rounded-md border border-border p-3"
+            >
               <div>
                 <div className="text-sm font-medium">{f.friendly_name || "Authenticator app"}</div>
                 <div className="text-xs text-muted-foreground">
@@ -156,7 +161,9 @@ export function SecurityMfa() {
           <div>
             <Label className="text-xs">Or enter this secret manually</Label>
             <div className="mt-1 flex items-center gap-2">
-              <code className="flex-1 truncate rounded bg-muted px-2 py-1 text-xs">{enrollment.secret}</code>
+              <code className="flex-1 truncate rounded bg-muted px-2 py-1 text-xs">
+                {enrollment.secret}
+              </code>
               <Button
                 variant="outline"
                 size="sm"
@@ -185,7 +192,9 @@ export function SecurityMfa() {
             <Button onClick={verifyEnroll} disabled={busy || code.length !== 6}>
               {busy ? "Verifying…" : "Verify & enable"}
             </Button>
-            <Button variant="ghost" onClick={cancelEnroll} disabled={busy}>Cancel</Button>
+            <Button variant="ghost" onClick={cancelEnroll} disabled={busy}>
+              Cancel
+            </Button>
           </div>
         </div>
       )}

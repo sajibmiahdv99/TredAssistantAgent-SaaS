@@ -4,9 +4,9 @@
 export type AssetClass = "BTC" | "ETH" | "ALT" | "STABLE" | "FOREX" | "INDEX" | "COMMODITY";
 
 export interface SymbolRiskCap {
-  symbol: string | null;       // exact pair like "BTCUSDT"
+  symbol: string | null; // exact pair like "BTCUSDT"
   asset_class: AssetClass | null;
-  max_exposure_pct: number | null;   // % of balance
+  max_exposure_pct: number | null; // % of balance
   max_open_positions: number | null;
   max_leverage: number | null;
   enabled: boolean;
@@ -68,15 +68,19 @@ export interface RiskDecision {
 }
 
 /** Find caps matching a symbol — exact match first, then asset class. */
-function matchingCaps(symbol: string | undefined, caps: SymbolRiskCap[] | undefined): SymbolRiskCap[] {
+function matchingCaps(
+  symbol: string | undefined,
+  caps: SymbolRiskCap[] | undefined,
+): SymbolRiskCap[] {
   if (!symbol || !caps?.length) return [];
   const cls = classifySymbol(symbol);
-  return caps.filter((c) => c.enabled && (
-    (c.symbol && c.symbol.toUpperCase() === symbol.toUpperCase()) ||
-    (c.asset_class && c.asset_class === cls)
-  ));
+  return caps.filter(
+    (c) =>
+      c.enabled &&
+      ((c.symbol && c.symbol.toUpperCase() === symbol.toUpperCase()) ||
+        (c.asset_class && c.asset_class === cls)),
+  );
 }
-
 
 /**
  * Adaptive risk multiplier based on recent performance.
@@ -102,7 +106,9 @@ export function adaptiveRiskMultiplier(ctx: {
 }
 
 export function evaluateRisk(
-  input: RiskInputs & { context: RiskInputs["context"] & { consecutiveWins?: number; recentWinRate?: number | null } },
+  input: RiskInputs & {
+    context: RiskInputs["context"] & { consecutiveWins?: number; recentWinRate?: number | null };
+  },
 ): RiskDecision {
   const s = input.settings;
   const c = input.context;
@@ -114,10 +120,7 @@ export function evaluateRisk(
     return reject("daily loss limit hit");
   if (s.max_drawdown_percent != null && c.drawdownPercent >= s.max_drawdown_percent)
     return reject("max drawdown breached");
-  if (
-    s.auto_stop_after_losses != null &&
-    c.consecutiveLosses >= s.auto_stop_after_losses
-  )
+  if (s.auto_stop_after_losses != null && c.consecutiveLosses >= s.auto_stop_after_losses)
     return reject("consecutive-loss auto-stop active");
   if (
     s.cooldown_minutes_after_loss != null &&
@@ -149,7 +152,10 @@ export function evaluateRisk(
   for (const cap of caps) {
     if (cap.max_leverage != null && leverage > cap.max_leverage) {
       leverage = cap.max_leverage;
-      appliedCap = { scope: cap.symbol ? "symbol" : "asset_class", key: (cap.symbol ?? cap.asset_class)! };
+      appliedCap = {
+        scope: cap.symbol ? "symbol" : "asset_class",
+        key: (cap.symbol ?? cap.asset_class)!,
+      };
     }
   }
 
@@ -175,7 +181,10 @@ export function evaluateRisk(
       const remaining = Math.max(0, allowed - currentExposure);
       if (notional > remaining) {
         notional = remaining;
-        appliedCap = { scope: sc.symbol ? "symbol" : "asset_class", key: (sc.symbol ?? sc.asset_class)! };
+        appliedCap = {
+          scope: sc.symbol ? "symbol" : "asset_class",
+          key: (sc.symbol ?? sc.asset_class)!,
+        };
       }
     }
   }
@@ -197,4 +206,3 @@ export function evaluateRisk(
 function reject(reason: string): RiskDecision {
   return { allow: false, reason, quantity: 0, notional: 0, leverage: 1 };
 }
-

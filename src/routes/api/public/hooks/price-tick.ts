@@ -22,7 +22,8 @@ export const Route = createFileRoute("/api/public/hooks/price-tick")({
         const provided = request.headers.get("x-relay-secret") ?? "";
         if (!expected || !provided || !safeEqual(provided, expected)) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
-            status: 401, headers: { "Content-Type": "application/json" },
+            status: 401,
+            headers: { "Content-Type": "application/json" },
           });
         }
 
@@ -31,19 +32,22 @@ export const Route = createFileRoute("/api/public/hooks/price-tick")({
           body = await request.json();
         } catch {
           return new Response(JSON.stringify({ error: "invalid_json" }), {
-            status: 400, headers: { "Content-Type": "application/json" },
+            status: 400,
+            headers: { "Content-Type": "application/json" },
           });
         }
 
         const raw = (body as { ticks?: unknown })?.ticks;
         if (!Array.isArray(raw)) {
           return new Response(JSON.stringify({ error: "ticks_required" }), {
-            status: 400, headers: { "Content-Type": "application/json" },
+            status: 400,
+            headers: { "Content-Type": "application/json" },
           });
         }
         if (raw.length > MAX_TICKS) {
           return new Response(JSON.stringify({ error: "too_many_ticks", max: MAX_TICKS }), {
-            status: 400, headers: { "Content-Type": "application/json" },
+            status: 400,
+            headers: { "Content-Type": "application/json" },
           });
         }
 
@@ -54,7 +58,8 @@ export const Route = createFileRoute("/api/public/hooks/price-tick")({
         for (const t of raw) {
           if (!t || typeof t !== "object") continue;
           const rec = t as Record<string, unknown>;
-          const code = typeof rec.exchange_code === "string" ? rec.exchange_code.trim().toLowerCase() : "";
+          const code =
+            typeof rec.exchange_code === "string" ? rec.exchange_code.trim().toLowerCase() : "";
           const sym = typeof rec.symbol === "string" ? rec.symbol.trim().toUpperCase() : "";
           const price = Number(rec.price);
           if (!code || !sym) continue;
@@ -76,7 +81,8 @@ export const Route = createFileRoute("/api/public/hooks/price-tick")({
           .upsert(clean, { onConflict: "exchange_code,symbol" });
         if (error) {
           return new Response(JSON.stringify({ error: error.message }), {
-            status: 500, headers: { "Content-Type": "application/json" },
+            status: 500,
+            headers: { "Content-Type": "application/json" },
           });
         }
 

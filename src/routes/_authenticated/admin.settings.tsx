@@ -8,7 +8,14 @@ import { PageHeader, Card } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   adminGetSystemStats,
   adminListBlockedNetworks,
@@ -16,7 +23,10 @@ import {
   adminDeleteBlockedNetwork,
 } from "@/lib/admin.functions";
 
-const opts = queryOptions({ queryKey: ["admin", "settings"], queryFn: () => adminGetSystemStats() });
+const opts = queryOptions({
+  queryKey: ["admin", "settings"],
+  queryFn: () => adminGetSystemStats(),
+});
 const netOpts = queryOptions({
   queryKey: ["admin", "blocked-networks"],
   queryFn: () => adminListBlockedNetworks(),
@@ -49,7 +59,9 @@ function Page() {
       addFn({ data: { cidr, country_code: country || undefined, reason: reason || undefined } }),
     onSuccess: () => {
       toast.success("Network added");
-      setCidr(""); setCountry(""); setReason("");
+      setCidr("");
+      setCountry("");
+      setReason("");
       qc.invalidateQueries({ queryKey: ["admin", "blocked-networks"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -71,37 +83,60 @@ function Page() {
         <Card>
           <p className="text-sm font-medium">Plans</p>
           <p className="mt-1 text-3xl font-semibold">{data.plansCount}</p>
-          <Link to="/admin/risk-templates" className="mt-3 inline-block text-xs text-amber-400 hover:underline">Manage plans →</Link>
+          <Link
+            to="/admin/risk-templates"
+            className="mt-3 inline-block text-xs text-amber-400 hover:underline"
+          >
+            Manage plans →
+          </Link>
         </Card>
         <Card>
           <p className="text-sm font-medium">Signal sources</p>
           <p className="mt-1 text-3xl font-semibold">{data.sourcesCount}</p>
-          <Link to="/admin/sources" className="mt-3 inline-block text-xs text-amber-400 hover:underline">Manage sources →</Link>
+          <Link
+            to="/admin/sources"
+            className="mt-3 inline-block text-xs text-amber-400 hover:underline"
+          >
+            Manage sources →
+          </Link>
         </Card>
       </div>
       <Card className="mt-4">
         <p className="text-sm font-medium">Webhooks & integrations</p>
         <p className="mt-2 text-xs text-muted-foreground">
-          Telegram intake and payment webhooks will be configured in the next phase. Once enabled, signed
-          callbacks will land on <code className="rounded bg-muted px-1">/api/public/*</code> endpoints.
+          Telegram intake and payment webhooks will be configured in the next phase. Once enabled,
+          signed callbacks will land on <code className="rounded bg-muted px-1">/api/public/*</code>{" "}
+          endpoints.
         </p>
       </Card>
 
       <Card className="mt-6">
         <p className="text-sm font-medium">Blocked networks (regional signup gating)</p>
         <p className="mt-2 text-xs text-muted-foreground">
-          Enforced server-side at signup via a Supabase Auth Hook — new accounts from a listed network are
-          rejected before creation. This list starts empty; populate it from a maintained source such as
-          <a href="https://www.ipdeny.com/ipblocks/" target="_blank" rel="noreferrer" className="ml-1 text-amber-400 hover:underline">ipdeny.com per-country zone files</a>
-          {" "}for the countries you need to restrict (e.g. cu, ir, kp, sy). After first use, enable{" "}
-          <code className="rounded bg-muted px-1">public.hook_restrict_signup_by_network</code> as the
-          "Before user created" hook in Auth Hooks.
+          Enforced server-side at signup via a Supabase Auth Hook — new accounts from a listed
+          network are rejected before creation. This list starts empty; populate it from a
+          maintained source such as
+          <a
+            href="https://www.ipdeny.com/ipblocks/"
+            target="_blank"
+            rel="noreferrer"
+            className="ml-1 text-amber-400 hover:underline"
+          >
+            ipdeny.com per-country zone files
+          </a>{" "}
+          for the countries you need to restrict (e.g. cu, ir, kp, sy). After first use, enable{" "}
+          <code className="rounded bg-muted px-1">public.hook_restrict_signup_by_network</code> as
+          the "Before user created" hook in Auth Hooks.
         </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-4">
           <div className="sm:col-span-2">
             <Label className="text-xs">CIDR</Label>
-            <Input value={cidr} onChange={(e) => setCidr(e.target.value)} placeholder="1.2.3.0/24" />
+            <Input
+              value={cidr}
+              onChange={(e) => setCidr(e.target.value)}
+              placeholder="1.2.3.0/24"
+            />
           </div>
           <div>
             <Label className="text-xs">Country code</Label>
@@ -109,7 +144,11 @@ function Page() {
           </div>
           <div>
             <Label className="text-xs">Reason (optional)</Label>
-            <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Signups are not available in your region." />
+            <Input
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Signups are not available in your region."
+            />
           </div>
         </div>
         <div className="mt-3 flex justify-end">
@@ -142,7 +181,9 @@ function Page() {
                     <TableCell className="font-mono text-xs">{n.cidr}</TableCell>
                     <TableCell className="uppercase text-xs">{n.country_code ?? "—"}</TableCell>
                     <TableCell className="text-xs">{n.reason ?? "—"}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{new Date(n.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {new Date(n.created_at).toLocaleDateString()}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"

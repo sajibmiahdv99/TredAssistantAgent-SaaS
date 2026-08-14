@@ -27,7 +27,12 @@ export function useBrowserNotifications() {
         .channel(`notif:${userId}`)
         .on(
           "postgres_changes",
-          { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${userId}`,
+          },
           (payload) => {
             const row = payload.new as NotificationRow;
             if (Notification.permission !== "granted") return;
@@ -38,7 +43,9 @@ export function useBrowserNotifications() {
                 badge: "/icon-192.png",
                 tag: row.id,
               });
-            } catch { /* ignore */ }
+            } catch {
+              /* ignore */
+            }
           },
         )
         .subscribe();

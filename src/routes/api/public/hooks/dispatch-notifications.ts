@@ -65,7 +65,12 @@ async function sendTelegram(token: string, chatId: string, text: string): Promis
   const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true }),
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
+    }),
   });
   if (!res.ok) throw new Error(`telegram ${res.status}: ${await res.text()}`);
 }
@@ -89,10 +94,7 @@ async function sendEmailViaResend(
 }
 
 function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function renderEmailHtml(title: string, body: string | null, evt: string): string {
@@ -199,7 +201,12 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-notifications")
 
           // Telegram
           if (!n.telegram_dispatched_at) {
-            if (!p || !p.channel_telegram || !p.telegram_chat_id || !isEventAllowed(p, n.event_type)) {
+            if (
+              !p ||
+              !p.channel_telegram ||
+              !p.telegram_chat_id ||
+              !isEventAllowed(p, n.event_type)
+            ) {
               patch.telegram_dispatched_at = new Date().toISOString();
               skipped++;
             } else if (!tgToken) {

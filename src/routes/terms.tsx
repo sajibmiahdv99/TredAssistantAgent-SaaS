@@ -1,13 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  FileText,
-  AlertTriangle,
-  Scale,
-  Ban,
-  DollarSign,
-  Shield,
-  Mail,
-} from "lucide-react";
+import { FileText, AlertTriangle, Scale, Ban, DollarSign, Shield, Mail } from "lucide-react";
 import { PublicNav, PublicFooter } from "@/components/PublicNav";
 import { Button } from "@/components/ui/button";
 
@@ -134,8 +126,8 @@ function Page() {
             Terms of <span className="text-primary">Service</span>.
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground">
-            These Terms govern your use of the Hermes platform. Please read them
-            carefully — by using the Service, you agree to be bound by them.
+            These Terms govern your use of the Hermes platform. Please read them carefully — by
+            using the Service, you agree to be bound by them.
           </p>
         </div>
       </section>
@@ -146,15 +138,10 @@ function Page() {
           {sections.map((section) => {
             const Icon = section.icon;
             return (
-              <div
-                key={section.title}
-                className="rounded-xl border border-border bg-card p-6"
-              >
+              <div key={section.title} className="rounded-xl border border-border bg-card p-6">
                 <div className="flex items-center gap-3">
                   <Icon className="h-5 w-5 text-primary" />
-                  <h2 className="text-xl font-semibold tracking-tight">
-                    {section.title}
-                  </h2>
+                  <h2 className="text-xl font-semibold tracking-tight">{section.title}</h2>
                 </div>
                 <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
                   {section.content}

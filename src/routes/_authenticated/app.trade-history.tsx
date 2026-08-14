@@ -5,7 +5,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Download } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/PageHeader";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -41,7 +48,13 @@ function Page() {
   const exportFn = useServerFn(exportTradeHistory);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [summary, setSummary] = useState<{ total_pnl: number; total_trades: number; wins: number; losses: number; win_rate: number } | null>(null);
+  const [summary, setSummary] = useState<{
+    total_pnl: number;
+    total_trades: number;
+    wins: number;
+    losses: number;
+    win_rate: number;
+  } | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -76,20 +89,34 @@ function Page() {
         toast.error("No trades in selected range");
         return;
       }
-      const header = ["Date", "Symbol", "Side", "Quantity", "Entry Price", "Exit Price", "Leverage", "Realized P&L", "Status"];
+      const header = [
+        "Date",
+        "Symbol",
+        "Side",
+        "Quantity",
+        "Entry Price",
+        "Exit Price",
+        "Leverage",
+        "Realized P&L",
+        "Status",
+      ];
       const lines = [header.join(",")];
       for (const r of res.rows) {
-        lines.push([
-          new Date(r.created_at).toISOString(),
-          r.symbol,
-          r.side,
-          r.quantity,
-          r.price ?? "",
-          r.fill_price ?? "",
-          r.leverage ?? "",
-          r.pnl ?? "",
-          r.status,
-        ].map(csvEscape).join(","));
+        lines.push(
+          [
+            new Date(r.created_at).toISOString(),
+            r.symbol,
+            r.side,
+            r.quantity,
+            r.price ?? "",
+            r.fill_price ?? "",
+            r.leverage ?? "",
+            r.pnl ?? "",
+            r.status,
+          ]
+            .map(csvEscape)
+            .join(","),
+        );
       }
       const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -117,11 +144,21 @@ function Page() {
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <Label className="text-xs">Start date</Label>
-            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-40" />
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-40"
+            />
           </div>
           <div>
             <Label className="text-xs">End date</Label>
-            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-40" />
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-40"
+            />
           </div>
           <Button variant="outline" onClick={refreshSummary} disabled={loadingSummary}>
             {loadingSummary ? "Loading…" : "Load summary"}
@@ -134,7 +171,13 @@ function Page() {
             <div className="ml-auto flex flex-wrap gap-4 text-sm">
               <div>
                 <div className="text-xs text-muted-foreground">Realized P&amp;L</div>
-                <div className={summary.total_pnl >= 0 ? "text-emerald-400 font-semibold" : "text-red-400 font-semibold"}>
+                <div
+                  className={
+                    summary.total_pnl >= 0
+                      ? "text-emerald-400 font-semibold"
+                      : "text-red-400 font-semibold"
+                  }
+                >
                   {summary.total_pnl.toFixed(2)}
                 </div>
               </div>
@@ -157,19 +200,38 @@ function Page() {
         <div className="rounded-xl border border-border bg-card overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow><TableHead>Date</TableHead><TableHead>Symbol</TableHead><TableHead>Side</TableHead><TableHead>Qty</TableHead><TableHead>Entry</TableHead><TableHead>Exit</TableHead><TableHead>Status</TableHead><TableHead>P&amp;L</TableHead></TableRow>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Symbol</TableHead>
+                <TableHead>Side</TableHead>
+                <TableHead>Qty</TableHead>
+                <TableHead>Entry</TableHead>
+                <TableHead>Exit</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>P&amp;L</TableHead>
+              </TableRow>
             </TableHeader>
             <TableBody>
               {data.map((o) => (
                 <TableRow key={o.id}>
-                  <TableCell className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString()}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {new Date(o.created_at).toLocaleString()}
+                  </TableCell>
                   <TableCell className="font-medium">{o.symbol}</TableCell>
-                  <TableCell><span className={o.side === "buy" ? "text-emerald-400" : "text-red-400"}>{o.side?.toUpperCase()}</span></TableCell>
+                  <TableCell>
+                    <span className={o.side === "buy" ? "text-emerald-400" : "text-red-400"}>
+                      {o.side?.toUpperCase()}
+                    </span>
+                  </TableCell>
                   <TableCell>{o.quantity}</TableCell>
                   <TableCell>{o.price ?? "-"}</TableCell>
                   <TableCell>{o.fill_price ?? "-"}</TableCell>
                   <TableCell className="text-xs uppercase">{o.status}</TableCell>
-                  <TableCell className={Number(o.pnl ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}>{Number(o.pnl ?? 0).toFixed(2)}</TableCell>
+                  <TableCell
+                    className={Number(o.pnl ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}
+                  >
+                    {Number(o.pnl ?? 0).toFixed(2)}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

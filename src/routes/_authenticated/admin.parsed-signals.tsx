@@ -2,7 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { PageHeader, EmptyState } from "@/components/PageHeader";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
@@ -25,7 +32,9 @@ function Page() {
   const reparse = useMutation({
     mutationFn: (signalId: string) => reparseFn({ data: { signalId } }),
     onSuccess: (r) => {
-      toast.success(`AI re-parsed: ${r.symbol ?? "—"} ${r.side ?? ""} (${(r.confidence * 100).toFixed(0)}%)`);
+      toast.success(
+        `AI re-parsed: ${r.symbol ?? "—"} ${r.side ?? ""} (${(r.confidence * 100).toFixed(0)}%)`,
+      );
       qc.invalidateQueries({ queryKey: ["admin", "signals"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -33,8 +42,16 @@ function Page() {
 
   return (
     <>
-      <PageHeader title="Parsed Signals" subtitle={`Last ${data.length} signals — AI re-parse available for low-confidence rows`} />
-      {data.length === 0 ? <EmptyState title="No signals yet" description="Parsed signals will appear here once intake is configured." /> : (
+      <PageHeader
+        title="Parsed Signals"
+        subtitle={`Last ${data.length} signals — AI re-parse available for low-confidence rows`}
+      />
+      {data.length === 0 ? (
+        <EmptyState
+          title="No signals yet"
+          description="Parsed signals will appear here once intake is configured."
+        />
+      ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <Table>
             <TableHeader>
@@ -54,15 +71,31 @@ function Page() {
             <TableBody>
               {data.map((s) => (
                 <TableRow key={s.id}>
-                  <TableCell className="text-xs">{new Date(s.created_at).toLocaleString()}</TableCell>
+                  <TableCell className="text-xs">
+                    {new Date(s.created_at).toLocaleString()}
+                  </TableCell>
                   <TableCell className="font-mono">{s.symbol ?? "—"}</TableCell>
                   <TableCell>{s.side ?? "—"}</TableCell>
                   <TableCell>{s.entry_price ?? "—"}</TableCell>
                   <TableCell>{s.stop_loss ?? "—"}</TableCell>
                   <TableCell className="text-xs">{s.take_profit?.join(", ") ?? "—"}</TableCell>
                   <TableCell>{s.leverage ?? "—"}</TableCell>
-                  <TableCell>{s.confidence != null ? `${(Number(s.confidence) * 100).toFixed(0)}%` : "—"}</TableCell>
-                  <TableCell><Badge variant={s.status === "parsed" ? "default" : s.status === "error" ? "destructive" : "outline"}>{s.status}</Badge></TableCell>
+                  <TableCell>
+                    {s.confidence != null ? `${(Number(s.confidence) * 100).toFixed(0)}%` : "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        s.status === "parsed"
+                          ? "default"
+                          : s.status === "error"
+                            ? "destructive"
+                            : "outline"
+                      }
+                    >
+                      {s.status}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-right">
                     <Button
                       size="sm"

@@ -22,7 +22,8 @@ export const Route = createFileRoute("/api/public/hooks/monitor-anomalies")({
         const provided = request.headers.get("x-cron-secret") ?? "";
         if (!expected || !provided || !safeEqual(provided, expected)) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
-            status: 401, headers: { "Content-Type": "application/json" },
+            status: 401,
+            headers: { "Content-Type": "application/json" },
           });
         }
 
@@ -88,7 +89,13 @@ export const Route = createFileRoute("/api/public/hooks/monitor-anomalies")({
             await supabaseAdmin.from("trade_logs").insert({
               user_id: s.user_id,
               action: "kill_switch_auto",
-              details: { reasons, blocked_until, dailyLossPercent: adaptive.dailyLossPercent, consecutiveLosses: adaptive.consecutiveLosses, burst },
+              details: {
+                reasons,
+                blocked_until,
+                dailyLossPercent: adaptive.dailyLossPercent,
+                consecutiveLosses: adaptive.consecutiveLosses,
+                burst,
+              },
             });
             await supabaseAdmin.from("notifications").insert({
               user_id: s.user_id,

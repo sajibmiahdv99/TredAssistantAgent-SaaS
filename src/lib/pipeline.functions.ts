@@ -108,7 +108,10 @@ export async function fanOutToSubscribers(params: {
   const blockMap = new Map<string, string>();
   if (userIds.length > 0) {
     const [{ data: balRows }, { data: orderRows }, { data: blockRows }] = await Promise.all([
-      supabaseAdmin.from("user_balances").select("user_id,available_balance").in("user_id", userIds),
+      supabaseAdmin
+        .from("user_balances")
+        .select("user_id,available_balance")
+        .in("user_id", userIds),
       supabaseAdmin
         .from("orders")
         .select("id,user_id")
@@ -117,7 +120,8 @@ export async function fanOutToSubscribers(params: {
       supabaseAdmin.from("trade_blocks").select("user_id,blocked_until").in("user_id", userIds),
     ]);
     for (const b of balRows ?? []) balanceMap.set(b.user_id, Number(b.available_balance ?? 0));
-    for (const o of orderRows ?? []) openCountMap.set(o.user_id, (openCountMap.get(o.user_id) ?? 0) + 1);
+    for (const o of orderRows ?? [])
+      openCountMap.set(o.user_id, (openCountMap.get(o.user_id) ?? 0) + 1);
     for (const b of blockRows ?? []) if (b.blocked_until) blockMap.set(b.user_id, b.blocked_until);
   }
 
@@ -134,7 +138,10 @@ export async function fanOutToSubscribers(params: {
 
     // Symbol allow/deny customization
     const sym = parsed.symbol.toUpperCase();
-    if (Array.isArray(s.symbol_denylist) && s.symbol_denylist.map((x) => x.toUpperCase()).includes(sym)) {
+    if (
+      Array.isArray(s.symbol_denylist) &&
+      s.symbol_denylist.map((x) => x.toUpperCase()).includes(sym)
+    ) {
       rejected++;
       continue;
     }
@@ -156,10 +163,7 @@ export async function fanOutToSubscribers(params: {
     const openCount = openCountMap.get(s.user_id) ?? 0;
 
     // Per-user concurrent-trade override
-    if (
-      s.max_concurrent_trades != null &&
-      openCount >= Number(s.max_concurrent_trades)
-    ) {
+    if (s.max_concurrent_trades != null && openCount >= Number(s.max_concurrent_trades)) {
       rejected++;
       continue;
     }
@@ -167,16 +171,22 @@ export async function fanOutToSubscribers(params: {
     const blockedUntil = blockMap.get(s.user_id);
     const isBlocked = !!(blockedUntil && new Date(blockedUntil) > new Date());
 
-
     const { loadAdaptiveContext } = await import("@/lib/risk/adaptiveContext.server");
     const adaptive = await loadAdaptiveContext(supabaseAdmin, s.user_id, balance);
 
     // Apply user-defined leverage caps to the signal before evaluating risk.
     let signalLeverage = parsed.leverage;
-    if (s.min_leverage != null && (signalLeverage == null || signalLeverage < Number(s.min_leverage))) {
+    if (
+      s.min_leverage != null &&
+      (signalLeverage == null || signalLeverage < Number(s.min_leverage))
+    ) {
       signalLeverage = Number(s.min_leverage);
     }
-    if (s.max_leverage != null && signalLeverage != null && signalLeverage > Number(s.max_leverage)) {
+    if (
+      s.max_leverage != null &&
+      signalLeverage != null &&
+      signalLeverage > Number(s.max_leverage)
+    ) {
       signalLeverage = Number(s.max_leverage);
     }
 
@@ -237,7 +247,8 @@ export async function fanOutToSubscribers(params: {
       totalQty: decision.quantity,
       mode: (s as { entry_mode?: string | null }).entry_mode,
       levels: (s as { entry_levels_count?: number | null }).entry_levels_count,
-      rangePercent: (s as { entry_range_percent?: number | string | null }).entry_range_percent as number | null | undefined,
+      rangePercent: (s as { entry_range_percent?: number | string | null }).entry_range_percent as
+        number | null | undefined,
       distribution: (s as { entry_distribution?: string | null }).entry_distribution,
     });
     const isSingle = ladder.length === 1;
@@ -245,9 +256,7 @@ export async function fanOutToSubscribers(params: {
     let orderFailed = false;
     for (let i = 0; i < ladder.length; i++) {
       const lvl = ladder[i];
-      const key = isSingle
-        ? `sig:${signalId}:${s.user_id}`
-        : `sig:${signalId}:${s.user_id}:L${i}`;
+      const key = isSingle ? `sig:${signalId}:${s.user_id}` : `sig:${signalId}:${s.user_id}:L${i}`;
       const { data: inserted, error: orderErr } = await supabaseAdmin
         .from("orders")
         .upsert(
@@ -269,8 +278,14 @@ export async function fanOutToSubscribers(params: {
           { onConflict: "idempotency_key", ignoreDuplicates: true },
         )
         .select("id");
-      if (orderErr) { orderFailed = true; break; }
-      if (inserted && inserted.length > 0) { anyInserted = true; queued++; }
+      if (orderErr) {
+        orderFailed = true;
+        break;
+      }
+      if (inserted && inserted.length > 0) {
+        anyInserted = true;
+        queued++;
+      }
     }
     if (orderFailed && !anyInserted) rejected++;
   }
@@ -318,10 +333,7 @@ export async function ingestSignalForSource(
     sourceId,
   });
 
-  await supabaseAdmin
-    .from("signals")
-    .update({ status: "dispatched" })
-    .eq("id", signalRow.id);
+  await supabaseAdmin.from("signals").update({ status: "dispatched" }).eq("id", signalRow.id);
 
   return { signalId: signalRow.id, queued, rejected };
 }
@@ -331,7 +343,10 @@ export const runIngestForText = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { text: string; sourceId?: string | null }) =>
     z
-      .object({ text: z.string().min(1).max(8000), sourceId: z.string().uuid().nullable().optional() })
+      .object({
+        text: z.string().min(1).max(8000),
+        sourceId: z.string().uuid().nullable().optional(),
+      })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -352,12 +367,17 @@ export const runIngestForText = createServerFn({ method: "POST" })
 export async function ingestSignalForPersonalChannel(
   rawText: string,
   channelId: string,
-): Promise<{ signalId: string; queued: boolean; reason?: string; fanOutQueued?: number; fanOutRejected?: number }> {
+): Promise<{
+  signalId: string;
+  queued: boolean;
+  reason?: string;
+  fanOutQueued?: number;
+  fanOutRejected?: number;
+}> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { parseSignalHybrid } = await import("@/lib/parser/aiParser.server");
   const regex = parseSignal(rawText);
   const parsed = await parseSignalHybrid(rawText, regex);
-
 
   const { data: channel } = await supabaseAdmin
     .from("personal_signal_channels")
@@ -408,7 +428,9 @@ export async function ingestSignalForPersonalChannel(
 
   const { data: risk } = await supabaseAdmin
     .from("channel_risk_settings")
-    .select("allocation_percent,stop_loss_percent,take_profit_percent,leverage,is_active,exchange_account_id")
+    .select(
+      "allocation_percent,stop_loss_percent,take_profit_percent,leverage,is_active,exchange_account_id",
+    )
     .eq("channel_id", channel.id)
     .eq("user_id", channel.user_id)
     .maybeSingle();
@@ -429,7 +451,9 @@ export async function ingestSignalForPersonalChannel(
   // Exchange selection priority: channel override -> user default -> first active.
   const { data: userRisk } = await supabaseAdmin
     .from("user_risk_settings")
-    .select("default_exchange_account_id,entry_mode,entry_levels_count,entry_range_percent,entry_distribution")
+    .select(
+      "default_exchange_account_id,entry_mode,entry_levels_count,entry_range_percent,entry_distribution",
+    )
     .eq("user_id", channel.user_id)
     .maybeSingle();
 
@@ -471,12 +495,14 @@ export async function ingestSignalForPersonalChannel(
 
   // Channel-level % overrides for SL/TP take precedence over the signal's raw levels.
   const dir = parsed.side === "long" ? 1 : -1;
-  const sl = risk.stop_loss_percent != null
-    ? parsed.entry * (1 - dir * Number(risk.stop_loss_percent) / 100)
-    : parsed.stopLoss;
-  const tp = risk.take_profit_percent != null
-    ? parsed.entry * (1 + dir * Number(risk.take_profit_percent) / 100)
-    : parsed.takeProfit[0] ?? null;
+  const sl =
+    risk.stop_loss_percent != null
+      ? parsed.entry * (1 - (dir * Number(risk.stop_loss_percent)) / 100)
+      : parsed.stopLoss;
+  const tp =
+    risk.take_profit_percent != null
+      ? parsed.entry * (1 + (dir * Number(risk.take_profit_percent)) / 100)
+      : (parsed.takeProfit[0] ?? null);
 
   const ownerLadder = buildEntryLadder({
     entry: parsed.entry,
@@ -484,7 +510,8 @@ export async function ingestSignalForPersonalChannel(
     totalQty: quantity,
     mode: (userRisk as { entry_mode?: string | null } | null)?.entry_mode,
     levels: (userRisk as { entry_levels_count?: number | null } | null)?.entry_levels_count,
-    rangePercent: (userRisk as { entry_range_percent?: number | string | null } | null)?.entry_range_percent as number | null | undefined,
+    rangePercent: (userRisk as { entry_range_percent?: number | string | null } | null)
+      ?.entry_range_percent as number | null | undefined,
     distribution: (userRisk as { entry_distribution?: string | null } | null)?.entry_distribution,
   });
   const ownerIsSingle = ownerLadder.length === 1;
@@ -556,7 +583,6 @@ export async function ingestSignalForPersonalChannel(
 
   return { signalId: signalRow.id, queued: true, fanOutQueued, fanOutRejected };
 }
-
 
 // Auth-protected RPC for the user's external MTProto worker to push a
 // captured channel message into the pipeline.

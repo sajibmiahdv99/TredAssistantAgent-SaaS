@@ -4,17 +4,34 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { PageHeader, EmptyState } from "@/components/PageHeader";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Pencil, X } from "lucide-react";
 import { listActiveOrders } from "@/lib/user.functions";
-import { cancelOrder, modifyOrder, setTrailingStop, setPartialTakeProfits } from "@/lib/execution.functions";
+import {
+  cancelOrder,
+  modifyOrder,
+  setTrailingStop,
+  setPartialTakeProfits,
+} from "@/lib/execution.functions";
 
 const opts = queryOptions({ queryKey: ["active-orders"], queryFn: () => listActiveOrders() });
 
@@ -54,7 +71,6 @@ function Page() {
   ]);
   const trailFn = useServerFn(setTrailingStop);
   const partialFn = useServerFn(setPartialTakeProfits);
-
 
   // Realtime invalidation handled globally in app.tsx via useOrdersRealtime()
 
@@ -114,10 +130,14 @@ function Page() {
       stop_loss: o.stop_loss?.toString() ?? "",
       take_profit: o.take_profit?.toString() ?? "",
     });
-    setTrailDist((o as { trailing_stop_distance?: number | null }).trailing_stop_distance?.toString() ?? "");
+    setTrailDist(
+      (o as { trailing_stop_distance?: number | null }).trailing_stop_distance?.toString() ?? "",
+    );
     const existing = (o as { tp_levels?: { price: number; percent: number }[] | null }).tp_levels;
     if (existing && existing.length) {
-      setTpLadder(existing.map((l) => ({ price: l.price.toString(), percent: l.percent.toString() })));
+      setTpLadder(
+        existing.map((l) => ({ price: l.price.toString(), percent: l.percent.toString() })),
+      );
     } else {
       setTpLadder([
         { price: "", percent: "50" },
@@ -127,7 +147,6 @@ function Page() {
     }
   };
 
-
   const canCancel = (s: string | null | undefined) =>
     s === "queued" || s === "open" || s === "partial" || s === "dispatched";
   const canModify = (s: string | null | undefined) =>
@@ -135,9 +154,15 @@ function Page() {
 
   return (
     <>
-      <PageHeader title="Active trades" subtitle="Open and pending orders across all exchanges. Updates live as fills arrive." />
+      <PageHeader
+        title="Active trades"
+        subtitle="Open and pending orders across all exchanges. Updates live as fills arrive."
+      />
       {data.length === 0 ? (
-        <EmptyState title="No active trades" description="Orders will appear here once signals execute." />
+        <EmptyState
+          title="No active trades"
+          description="Orders will appear here once signals execute."
+        />
       ) : (
         <div className="rounded-xl border border-border bg-card overflow-x-auto">
           <Table>
@@ -168,20 +193,32 @@ function Page() {
                   <TableCell>{o.stop_loss ?? "-"}</TableCell>
                   <TableCell>{o.take_profit ?? "-"}</TableCell>
                   <TableCell>
-                    <Badge variant={statusVariant[o.status ?? ""] ?? "outline"} className="text-[10px] uppercase">
+                    <Badge
+                      variant={statusVariant[o.status ?? ""] ?? "outline"}
+                      className="text-[10px] uppercase"
+                    >
                       {o.status}
                     </Badge>
                     {(o as { cancel_requested?: boolean }).cancel_requested && (
-                      <span className="ml-1 text-[10px] text-muted-foreground">(cancel pending)</span>
+                      <span className="ml-1 text-[10px] text-muted-foreground">
+                        (cancel pending)
+                      </span>
                     )}
                   </TableCell>
-                  <TableCell className={Number(o.pnl ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}>
+                  <TableCell
+                    className={Number(o.pnl ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}
+                  >
                     {Number(o.pnl ?? 0).toFixed(2)}
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-1">
                       {canModify(o.status) && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(o)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => openEdit(o)}
+                        >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       )}
@@ -216,16 +253,26 @@ function Page() {
 
           <div className="space-y-4">
             <div className="space-y-3 border-b border-border pb-4">
-              <div className="text-xs font-medium uppercase text-muted-foreground">Static SL / TP</div>
+              <div className="text-xs font-medium uppercase text-muted-foreground">
+                Static SL / TP
+              </div>
               <div>
                 <Label>Stop loss</Label>
-                <Input type="number" step="any" value={editForm.stop_loss}
-                  onChange={(e) => setEditForm({ ...editForm, stop_loss: e.target.value })} />
+                <Input
+                  type="number"
+                  step="any"
+                  value={editForm.stop_loss}
+                  onChange={(e) => setEditForm({ ...editForm, stop_loss: e.target.value })}
+                />
               </div>
               <div>
                 <Label>Take profit</Label>
-                <Input type="number" step="any" value={editForm.take_profit}
-                  onChange={(e) => setEditForm({ ...editForm, take_profit: e.target.value })} />
+                <Input
+                  type="number"
+                  step="any"
+                  value={editForm.take_profit}
+                  onChange={(e) => setEditForm({ ...editForm, take_profit: e.target.value })}
+                />
               </div>
               <Button size="sm" onClick={() => modifyM.mutate()} disabled={modifyM.isPending}>
                 {modifyM.isPending ? "Saving..." : "Update SL/TP"}
@@ -233,24 +280,36 @@ function Page() {
             </div>
 
             <div className="space-y-3 border-b border-border pb-4">
-              <div className="text-xs font-medium uppercase text-muted-foreground">Trailing stop</div>
+              <div className="text-xs font-medium uppercase text-muted-foreground">
+                Trailing stop
+              </div>
               <div>
                 <Label>Distance (price units)</Label>
-                <Input type="number" step="any" placeholder="e.g. 150"
-                  value={trailDist} onChange={(e) => setTrailDist(e.target.value)} />
+                <Input
+                  type="number"
+                  step="any"
+                  placeholder="e.g. 150"
+                  value={trailDist}
+                  onChange={(e) => setTrailDist(e.target.value)}
+                />
                 <p className="text-[11px] text-muted-foreground mt-1">
                   Worker will trail SL by this distance as price moves favorably.
                 </p>
               </div>
-              <Button size="sm" variant="secondary"
+              <Button
+                size="sm"
+                variant="secondary"
                 onClick={() => trailM.mutate()}
-                disabled={trailM.isPending || !trailDist || Number(trailDist) <= 0}>
+                disabled={trailM.isPending || !trailDist || Number(trailDist) <= 0}
+              >
                 {trailM.isPending ? "Saving..." : "Enable trailing"}
               </Button>
             </div>
 
             <div className="space-y-3">
-              <div className="text-xs font-medium uppercase text-muted-foreground">Partial take-profit ladder</div>
+              <div className="text-xs font-medium uppercase text-muted-foreground">
+                Partial take-profit ladder
+              </div>
               <p className="text-[11px] text-muted-foreground">
                 Close a slice of the position at each price level. Percentages must sum to 100.
               </p>
@@ -258,21 +317,38 @@ function Page() {
                 <div key={i} className="flex gap-2 items-end">
                   <div className="flex-1">
                     <Label className="text-[11px]">TP{i + 1} price</Label>
-                    <Input type="number" step="any" value={l.price}
+                    <Input
+                      type="number"
+                      step="any"
+                      value={l.price}
                       onChange={(e) => {
-                        const next = [...tpLadder]; next[i] = { ...l, price: e.target.value }; setTpLadder(next);
-                      }} />
+                        const next = [...tpLadder];
+                        next[i] = { ...l, price: e.target.value };
+                        setTpLadder(next);
+                      }}
+                    />
                   </div>
                   <div className="w-24">
                     <Label className="text-[11px]">% close</Label>
-                    <Input type="number" min="1" max="100" value={l.percent}
+                    <Input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={l.percent}
                       onChange={(e) => {
-                        const next = [...tpLadder]; next[i] = { ...l, percent: e.target.value }; setTpLadder(next);
-                      }} />
+                        const next = [...tpLadder];
+                        next[i] = { ...l, percent: e.target.value };
+                        setTpLadder(next);
+                      }}
+                    />
                   </div>
                   {tpLadder.length > 1 && (
-                    <Button variant="ghost" size="icon" className="h-9 w-9"
-                      onClick={() => setTpLadder(tpLadder.filter((_, idx) => idx !== i))}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9"
+                      onClick={() => setTpLadder(tpLadder.filter((_, idx) => idx !== i))}
+                    >
                       <X className="h-3.5 w-3.5" />
                     </Button>
                   )}
@@ -283,28 +359,37 @@ function Page() {
                   Total: {tpLadder.reduce((s, l) => s + (Number(l.percent) || 0), 0)}%
                 </span>
                 {tpLadder.length < 6 && (
-                  <Button variant="ghost" size="sm"
-                    onClick={() => setTpLadder([...tpLadder, { price: "", percent: "" }])}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setTpLadder([...tpLadder, { price: "", percent: "" }])}
+                  >
                     + Add level
                   </Button>
                 )}
               </div>
-              <Button size="sm" variant="secondary"
+              <Button
+                size="sm"
+                variant="secondary"
                 onClick={() => partialM.mutate()}
-                disabled={partialM.isPending ||
+                disabled={
+                  partialM.isPending ||
                   tpLadder.some((l) => !l.price || !l.percent) ||
-                  Math.round(tpLadder.reduce((s, l) => s + Number(l.percent || 0), 0)) !== 100}>
+                  Math.round(tpLadder.reduce((s, l) => s + Number(l.percent || 0), 0)) !== 100
+                }
+              >
                 {partialM.isPending ? "Saving..." : "Save ladder"}
               </Button>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setEditing(null)}>Close</Button>
+            <Button variant="ghost" onClick={() => setEditing(null)}>
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </>
   );
 }

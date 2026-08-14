@@ -20,7 +20,8 @@ export const Route = createFileRoute("/api/public/hooks/process-orders")({
         const provided = request.headers.get("x-cron-secret") ?? "";
         if (!expected || !provided || !safeEqual(provided, expected)) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
-            status: 401, headers: { "Content-Type": "application/json" },
+            status: 401,
+            headers: { "Content-Type": "application/json" },
           });
         }
 
@@ -46,17 +47,27 @@ export const Route = createFileRoute("/api/public/hooks/process-orders")({
 
         for (const o of queued ?? []) {
           if (!o.exchange_account_id) {
-            await markRejected(o.id, o.user_id, "No exchange account linked. Connect one in Exchanges.");
+            await markRejected(
+              o.id,
+              o.user_id,
+              "No exchange account linked. Connect one in Exchanges.",
+            );
             results.failed++;
             continue;
           }
           const { data: acct } = await supabaseAdmin
             .from("exchange_accounts")
-            .select("id,exchange_code,encrypted_api_key,encrypted_api_secret,passphrase,status,last_error,execution_mode")
+            .select(
+              "id,exchange_code,encrypted_api_key,encrypted_api_secret,passphrase,status,last_error,execution_mode",
+            )
             .eq("id", o.exchange_account_id)
             .maybeSingle();
           if (!acct) {
-            await markRejected(o.id, o.user_id, "Exchange account was removed before the order could be placed.");
+            await markRejected(
+              o.id,
+              o.user_id,
+              "Exchange account was removed before the order could be placed.",
+            );
             results.failed++;
             continue;
           }
@@ -64,18 +75,23 @@ export const Route = createFileRoute("/api/public/hooks/process-orders")({
           // Paper-trading short-circuit: simulate immediate fill at entry price.
           if (acct.execution_mode === "paper") {
             const fakeId = `paper-${o.id.slice(0, 12)}-${Date.now()}`;
-            await supabaseAdmin.from("orders").update({
-              status: "filled",
-              exchange_order_id: fakeId,
-              client_order_id: o.client_order_id ?? `lov-${o.id.slice(0, 12)}`,
-              fill_price: o.price,
-              filled_quantity: o.quantity,
-              error_message: null,
-            }).eq("id", o.id);
+            await supabaseAdmin
+              .from("orders")
+              .update({
+                status: "filled",
+                exchange_order_id: fakeId,
+                client_order_id: o.client_order_id ?? `lov-${o.id.slice(0, 12)}`,
+                fill_price: o.price,
+                filled_quantity: o.quantity,
+                error_message: null,
+              })
+              .eq("id", o.id);
             await supabaseAdmin.from("order_events").insert({
-              order_id: o.id, user_id: o.user_id,
+              order_id: o.id,
+              user_id: o.user_id,
               event_type: "paper_filled",
-              from_status: "queued", to_status: "filled",
+              from_status: "queued",
+              to_status: "filled",
               payload: { simulated: true, fill_price: o.price },
             });
             results.placed++;
@@ -83,13 +99,18 @@ export const Route = createFileRoute("/api/public/hooks/process-orders")({
           }
 
           if (!isExchangeExecutable(acct.exchange_code)) {
-            await markRejected(o.id, o.user_id, `Exchange ${acct.exchange_code} is not yet supported for live trading.`);
+            await markRejected(
+              o.id,
+              o.user_id,
+              `Exchange ${acct.exchange_code} is not yet supported for live trading.`,
+            );
             results.failed++;
             continue;
           }
           if (acct.status !== "active") {
             await markRejected(
-              o.id, o.user_id,
+              o.id,
+              o.user_id,
               acct.status === "invalid"
                 ? `Exchange keys are invalid: ${acct.last_error ?? "re-validate in Exchanges"}`
                 : `Exchange account is ${acct.status}. Verify keys in Exchanges.`,
@@ -117,13 +138,19 @@ export const Route = createFileRoute("/api/public/hooks/process-orders")({
             if (urs?.market_fallback && o.price != null) {
               const mark = await fetchExchangeTicker(acct.exchange_code, o.symbol);
               if (mark != null) {
-                const slippagePct = Math.abs(mark - Number(o.price)) / Number(o.price) * 100;
-                if (urs.max_slippage_percent != null && slippagePct > Number(urs.max_slippage_percent)) {
+                const slippagePct = (Math.abs(mark - Number(o.price)) / Number(o.price)) * 100;
+                if (
+                  urs.max_slippage_percent != null &&
+                  slippagePct > Number(urs.max_slippage_percent)
+                ) {
                   const reasonMsg = `Skipped: price moved ${slippagePct.toFixed(2)}% from signal entry ${o.price}, exceeds your ${urs.max_slippage_percent}% max slippage.`;
-                  await supabaseAdmin.from("orders").update({
-                    status: "rejected",
-                    error_message: reasonMsg.slice(0, 500),
-                  }).eq("id", o.id);
+                  await supabaseAdmin
+                    .from("orders")
+                    .update({
+                      status: "rejected",
+                      error_message: reasonMsg.slice(0, 500),
+                    })
+                    .eq("id", o.id);
                   await supabaseAdmin.from("order_events").insert({
                     order_id: o.id,
                     user_id: o.user_id,
@@ -161,18 +188,30 @@ export const Route = createFileRoute("/api/public/hooks/process-orders")({
               clientOrderId,
             });
 
-            await supabaseAdmin.from("orders").update({
-              status: r.status === "rejected" ? "rejected" : r.status === "filled" ? "filled" : r.status === "partial" ? "partial" : "open",
-              exchange_order_id: r.exchangeOrderId,
-              client_order_id: clientOrderId,
-              fill_price: r.fillPrice ?? null,
-              filled_quantity: r.filledQuantity ?? null,
-              error_message: null,
-            }).eq("id", o.id);
+            await supabaseAdmin
+              .from("orders")
+              .update({
+                status:
+                  r.status === "rejected"
+                    ? "rejected"
+                    : r.status === "filled"
+                      ? "filled"
+                      : r.status === "partial"
+                        ? "partial"
+                        : "open",
+                exchange_order_id: r.exchangeOrderId,
+                client_order_id: clientOrderId,
+                fill_price: r.fillPrice ?? null,
+                filled_quantity: r.filledQuantity ?? null,
+                error_message: null,
+              })
+              .eq("id", o.id);
             await supabaseAdmin.from("order_events").insert({
-              order_id: o.id, user_id: o.user_id,
+              order_id: o.id,
+              user_id: o.user_id,
               event_type: `exchange_${r.status}`,
-              from_status: "queued", to_status: r.status,
+              from_status: "queued",
+              to_status: r.status,
               payload: { exchange_order_id: r.exchangeOrderId, fill_price: r.fillPrice ?? null },
             });
             results.placed++;
@@ -212,18 +251,29 @@ export const Route = createFileRoute("/api/public/hooks/process-orders")({
               apiSecret: decryptSecret(acct.encrypted_api_secret),
             };
             await cancelExchangeOrder(acct.exchange_code, creds, o.symbol, o.exchange_order_id);
-            await supabaseAdmin.from("orders").update({
-              status: "cancelled", cancel_requested: false,
-            }).eq("id", o.id);
+            await supabaseAdmin
+              .from("orders")
+              .update({
+                status: "cancelled",
+                cancel_requested: false,
+              })
+              .eq("id", o.id);
             await supabaseAdmin.from("order_events").insert({
-              order_id: o.id, user_id: o.user_id, event_type: "exchange_cancelled",
-              from_status: o.status, to_status: "cancelled", payload: {},
+              order_id: o.id,
+              user_id: o.user_id,
+              event_type: "exchange_cancelled",
+              from_status: o.status,
+              to_status: "cancelled",
+              payload: {},
             });
             results.cancelled++;
           } catch (e) {
             await supabaseAdmin.from("order_events").insert({
-              order_id: o.id, user_id: o.user_id, event_type: "cancel_failed",
-              from_status: o.status, to_status: null,
+              order_id: o.id,
+              user_id: o.user_id,
+              event_type: "cancel_failed",
+              from_status: o.status,
+              to_status: null,
               payload: { error: e instanceof Error ? e.message : String(e) },
             });
             results.failed++;
@@ -252,17 +302,27 @@ export const Route = createFileRoute("/api/public/hooks/process-orders")({
               apiKey: decryptSecret(acct.encrypted_api_key),
               apiSecret: decryptSecret(acct.encrypted_api_secret),
             };
-            const r = await fetchExchangeOrderStatus(acct.exchange_code, creds, o.symbol, o.exchange_order_id);
+            const r = await fetchExchangeOrderStatus(
+              acct.exchange_code,
+              creds,
+              o.symbol,
+              o.exchange_order_id,
+            );
             if (r.status !== o.status) {
-              await supabaseAdmin.from("orders").update({
-                status: r.status,
-                fill_price: r.fillPrice ?? o.fill_price,
-                filled_quantity: r.filledQuantity ?? o.filled_quantity,
-              }).eq("id", o.id);
+              await supabaseAdmin
+                .from("orders")
+                .update({
+                  status: r.status,
+                  fill_price: r.fillPrice ?? o.fill_price,
+                  filled_quantity: r.filledQuantity ?? o.filled_quantity,
+                })
+                .eq("id", o.id);
               await supabaseAdmin.from("order_events").insert({
-                order_id: o.id, user_id: o.user_id,
+                order_id: o.id,
+                user_id: o.user_id,
                 event_type: `exchange_sync_${r.status}`,
-                from_status: o.status, to_status: r.status,
+                from_status: o.status,
+                to_status: r.status,
                 payload: { fill_price: r.fillPrice, filled_quantity: r.filledQuantity },
               });
             }
@@ -277,13 +337,19 @@ export const Route = createFileRoute("/api/public/hooks/process-orders")({
         });
 
         async function markRejected(orderId: string, userId: string, msg: string) {
-          await supabaseAdmin.from("orders").update({
-            status: "rejected", error_message: msg.slice(0, 500),
-          }).eq("id", orderId);
+          await supabaseAdmin
+            .from("orders")
+            .update({
+              status: "rejected",
+              error_message: msg.slice(0, 500),
+            })
+            .eq("id", orderId);
           await supabaseAdmin.from("order_events").insert({
-            order_id: orderId, user_id: userId,
+            order_id: orderId,
+            user_id: userId,
             event_type: "exchange_rejected",
-            from_status: "queued", to_status: "rejected",
+            from_status: "queued",
+            to_status: "rejected",
             payload: { error: msg.slice(0, 500) },
           });
         }

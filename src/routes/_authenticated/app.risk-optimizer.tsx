@@ -1,5 +1,11 @@
 import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
-import { queryOptions, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -11,8 +17,21 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { SlidersHorizontal, Trash2, Play, Eye, Check } from "lucide-react";
 import {
   createRiskOptimization,
@@ -35,7 +54,8 @@ export const Route = createFileRoute("/_authenticated/app/risk-optimizer")({
   component: Page,
 });
 
-type ParamKey = "risk_per_trade_percent" | "max_trade_size_percent" | "max_open_positions" | "hold_timeout_hours";
+type ParamKey =
+  "risk_per_trade_percent" | "max_trade_size_percent" | "max_open_positions" | "hold_timeout_hours";
 
 const PARAM_META: Record<ParamKey, { label: string; default: string; int: boolean }> = {
   risk_per_trade_percent: { label: "Risk per trade %", default: "0.5, 1, 2", int: false },
@@ -54,7 +74,10 @@ function parseList(s: string, int: boolean): number[] {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const cfg: Record<string, { v: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
+  const cfg: Record<
+    string,
+    { v: "default" | "secondary" | "destructive" | "outline"; label: string }
+  > = {
     queued: { v: "secondary", label: "Queued" },
     running: { v: "default", label: "Running" },
     completed: { v: "default", label: "Completed" },
@@ -120,17 +143,23 @@ function Page() {
   const disabled = totalCombos === 0 || totalCombos > 24;
 
   const create = useMutation({
-    mutationFn: () => createFn({
-      data: {
-        name: name || `Optimizer ${new Date().toLocaleDateString()}`,
-        start_date: new Date(startDate).toISOString(),
-        end_date: new Date(endDate).toISOString(),
-        initial_balance: Number(initialBalance) || 10000,
-        fee_pct: Number(feePct) || 0.05,
-        symbols: symbols ? symbols.split(",").map((s) => s.trim()).filter(Boolean) : undefined,
-        grid: gridArrays,
-      },
-    }),
+    mutationFn: () =>
+      createFn({
+        data: {
+          name: name || `Optimizer ${new Date().toLocaleDateString()}`,
+          start_date: new Date(startDate).toISOString(),
+          end_date: new Date(endDate).toISOString(),
+          initial_balance: Number(initialBalance) || 10000,
+          fee_pct: Number(feePct) || 0.05,
+          symbols: symbols
+            ? symbols
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : undefined,
+          grid: gridArrays,
+        },
+      }),
     onSuccess: () => {
       toast.success("Optimization queued — combos will run one per minute");
       qc.invalidateQueries({ queryKey: ["risk-optimizations"] });
@@ -156,38 +185,67 @@ function Page() {
         actions={
           <Dialog open={openNew} onOpenChange={setOpenNew}>
             <DialogTrigger asChild>
-              <Button><SlidersHorizontal className="h-4 w-4 mr-2" /> New optimization</Button>
+              <Button>
+                <SlidersHorizontal className="h-4 w-4 mr-2" /> New optimization
+              </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>New optimization</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle>New optimization</DialogTitle>
+              </DialogHeader>
               <div className="grid gap-3">
                 <div>
                   <Label>Name</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My grid v1" />
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="My grid v1"
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>Start date</Label>
-                    <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                    />
                   </div>
                   <div>
                     <Label>End date</Label>
-                    <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>Initial balance (USDT)</Label>
-                    <Input type="number" value={initialBalance} onChange={(e) => setInitialBalance(e.target.value)} />
+                    <Input
+                      type="number"
+                      value={initialBalance}
+                      onChange={(e) => setInitialBalance(e.target.value)}
+                    />
                   </div>
                   <div>
                     <Label>Fee % per side</Label>
-                    <Input type="number" step="0.01" value={feePct} onChange={(e) => setFeePct(e.target.value)} />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={feePct}
+                      onChange={(e) => setFeePct(e.target.value)}
+                    />
                   </div>
                 </div>
                 <div>
                   <Label>Symbols (optional, csv)</Label>
-                  <Input value={symbols} onChange={(e) => setSymbols(e.target.value)} placeholder="BTCUSDT,ETHUSDT" />
+                  <Input
+                    value={symbols}
+                    onChange={(e) => setSymbols(e.target.value)}
+                    placeholder="BTCUSDT,ETHUSDT"
+                  />
                 </div>
 
                 <div className="rounded-lg border border-border p-3 space-y-3">
@@ -211,12 +269,18 @@ function Page() {
                   ))}
                 </div>
 
-                <div className={`rounded-lg p-3 text-sm ${disabled ? "bg-destructive/10 text-destructive" : "bg-muted"}`}>
+                <div
+                  className={`rounded-lg p-3 text-sm ${disabled ? "bg-destructive/10 text-destructive" : "bg-muted"}`}
+                >
                   {totalCombos === 0 && "At least one parameter must be varied with valid values."}
                   {totalCombos > 0 && totalCombos <= 24 && (
-                    <>{totalCombos} total configuration{totalCombos > 1 ? "s" : ""} (~{totalCombos} minute{totalCombos > 1 ? "s" : ""} to complete at 1/min)</>
+                    <>
+                      {totalCombos} total configuration{totalCombos > 1 ? "s" : ""} (~{totalCombos}{" "}
+                      minute{totalCombos > 1 ? "s" : ""} to complete at 1/min)
+                    </>
                   )}
-                  {totalCombos > 24 && `${totalCombos} configurations exceeds the 24-combo limit. Please narrow your grid.`}
+                  {totalCombos > 24 &&
+                    `${totalCombos} configurations exceeds the 24-combo limit. Please narrow your grid.`}
                 </div>
 
                 <Button onClick={() => create.mutate()} disabled={disabled || create.isPending}>
@@ -249,14 +313,22 @@ function Page() {
               {runs.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="font-medium">{r.name}</TableCell>
-                  <TableCell><StatusBadge status={r.status} /></TableCell>
+                  <TableCell>
+                    <StatusBadge status={r.status} />
+                  </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {new Date(r.start_date).toLocaleDateString()} → {new Date(r.end_date).toLocaleDateString()}
+                    {new Date(r.start_date).toLocaleDateString()} →{" "}
+                    {new Date(r.end_date).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Progress value={(r.completed_combos / Math.max(r.total_combos, 1)) * 100} className="w-24 h-2" />
-                      <span className="text-xs text-muted-foreground">{r.completed_combos}/{r.total_combos}</span>
+                      <Progress
+                        value={(r.completed_combos / Math.max(r.total_combos, 1)) * 100}
+                        className="w-24 h-2"
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {r.completed_combos}/{r.total_combos}
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
@@ -280,13 +352,32 @@ function Page() {
 }
 
 type OptRun = {
-  id: string; name: string; status: string; best_backtest_run_id: string | null;
-  total_combos: number; completed_combos: number; results: unknown; error: string | null;
+  id: string;
+  name: string;
+  status: string;
+  best_backtest_run_id: string | null;
+  total_combos: number;
+  completed_combos: number;
+  results: unknown;
+  error: string | null;
 };
 type ChildRow = {
-  id: string; name: string; status: string; progress: number;
-  config: { risk_per_trade_percent?: number; max_trade_size_percent?: number; max_open_positions?: number; hold_timeout_hours?: number };
-  summary: { total_trades?: number; total_pnl_pct?: number; max_drawdown_pct?: number; win_rate?: number } | null;
+  id: string;
+  name: string;
+  status: string;
+  progress: number;
+  config: {
+    risk_per_trade_percent?: number;
+    max_trade_size_percent?: number;
+    max_open_positions?: number;
+    hold_timeout_hours?: number;
+  };
+  summary: {
+    total_trades?: number;
+    total_pnl_pct?: number;
+    max_drawdown_pct?: number;
+    win_rate?: number;
+  } | null;
   error: string | null;
 };
 type ResultRow = {
@@ -321,22 +412,28 @@ function RunDetail({ id, onClose }: { id: string; onClose: () => void }) {
   const children = (q.data.children ?? []) as ChildRow[];
   const results = (Array.isArray(run.results) ? run.results : null) as ResultRow[] | null;
 
-  const rows: ResultRow[] = results && results.length > 0
-    ? [...results].sort((a, b) => {
-        if (a.eligible !== b.eligible) return a.eligible ? -1 : 1;
-        return (b.score ?? -Infinity) - (a.score ?? -Infinity);
-      })
-    : [];
+  const rows: ResultRow[] =
+    results && results.length > 0
+      ? [...results].sort((a, b) => {
+          if (a.eligible !== b.eligible) return a.eligible ? -1 : 1;
+          return (b.score ?? -Infinity) - (a.score ?? -Infinity);
+        })
+      : [];
 
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{run.name}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>{run.name}</DialogTitle>
+        </DialogHeader>
 
         {run.status !== "completed" ? (
           <Card className="p-4 space-y-3">
             <div className="text-sm">
-              Progress: <span className="font-semibold">{run.completed_combos}/{run.total_combos}</span>
+              Progress:{" "}
+              <span className="font-semibold">
+                {run.completed_combos}/{run.total_combos}
+              </span>
             </div>
             <Progress value={(run.completed_combos / Math.max(run.total_combos, 1)) * 100} />
             <Table>
@@ -351,8 +448,12 @@ function RunDetail({ id, onClose }: { id: string; onClose: () => void }) {
                 {children.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="text-xs">{c.name}</TableCell>
-                    <TableCell><StatusBadge status={c.status} /></TableCell>
-                    <TableCell><Progress value={c.progress} className="w-24 h-2" /></TableCell>
+                    <TableCell>
+                      <StatusBadge status={c.status} />
+                    </TableCell>
+                    <TableCell>
+                      <Progress value={c.progress} className="w-24 h-2" />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -360,7 +461,8 @@ function RunDetail({ id, onClose }: { id: string; onClose: () => void }) {
           </Card>
         ) : rows.length === 0 || rows.every((r) => !r.eligible) ? (
           <Card className="p-6 text-center text-muted-foreground text-sm">
-            কোনো configuration statistically meaningful ছিল না (৫টির কম ট্রেড)। দীর্ঘতর সময়সীমা বেছে নিন।
+            কোনো configuration statistically meaningful ছিল না (৫টির কম ট্রেড)। দীর্ঘতর সময়সীমা
+            বেছে নিন।
           </Card>
         ) : (
           <Card className="overflow-hidden">
@@ -382,11 +484,18 @@ function RunDetail({ id, onClose }: { id: string; onClose: () => void }) {
                 {rows.map((r) => {
                   const isBest = r.backtest_run_id === run.best_backtest_run_id;
                   return (
-                    <TableRow key={r.backtest_run_id} className={isBest ? "bg-primary/10" : r.eligible ? "" : "opacity-50"}>
+                    <TableRow
+                      key={r.backtest_run_id}
+                      className={isBest ? "bg-primary/10" : r.eligible ? "" : "opacity-50"}
+                    >
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {isBest && <Badge variant="default">Best</Badge>}
-                          {r.eligible ? (r.score?.toFixed(2) ?? "—") : <Badge variant="outline">insufficient trades</Badge>}
+                          {r.eligible ? (
+                            (r.score?.toFixed(2) ?? "—")
+                          ) : (
+                            <Badge variant="outline">insufficient trades</Badge>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>{r.config?.risk_per_trade_percent ?? "—"}</TableCell>
@@ -394,17 +503,30 @@ function RunDetail({ id, onClose }: { id: string; onClose: () => void }) {
                       <TableCell>{r.config?.max_open_positions ?? "—"}</TableCell>
                       <TableCell>{r.config?.hold_timeout_hours ?? "—"}h</TableCell>
                       <TableCell>{r.summary?.total_trades ?? "—"}</TableCell>
-                      <TableCell className={r.summary?.total_pnl_pct != null && r.summary.total_pnl_pct >= 0 ? "text-emerald-500" : "text-rose-500"}>
-                        {r.summary?.total_pnl_pct != null ? `${r.summary.total_pnl_pct.toFixed(2)}%` : "—"}
+                      <TableCell
+                        className={
+                          r.summary?.total_pnl_pct != null && r.summary.total_pnl_pct >= 0
+                            ? "text-emerald-500"
+                            : "text-rose-500"
+                        }
+                      >
+                        {r.summary?.total_pnl_pct != null
+                          ? `${r.summary.total_pnl_pct.toFixed(2)}%`
+                          : "—"}
                       </TableCell>
-                      <TableCell>{r.summary?.max_drawdown_pct != null ? `${r.summary.max_drawdown_pct.toFixed(2)}%` : "—"}</TableCell>
+                      <TableCell>
+                        {r.summary?.max_drawdown_pct != null
+                          ? `${r.summary.max_drawdown_pct.toFixed(2)}%`
+                          : "—"}
+                      </TableCell>
                       <TableCell className="text-right">
                         <Button
                           size="sm"
                           variant={isBest ? "default" : "outline"}
                           disabled={!r.eligible || apply.isPending}
                           onClick={() => {
-                            if (confirm("Apply this configuration to your risk settings?")) apply.mutate(r.backtest_run_id);
+                            if (confirm("Apply this configuration to your risk settings?"))
+                              apply.mutate(r.backtest_run_id);
                           }}
                         >
                           <Check className="h-3 w-3 mr-1" /> Apply

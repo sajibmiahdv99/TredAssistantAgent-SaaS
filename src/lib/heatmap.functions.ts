@@ -46,12 +46,17 @@ export const getPortfolioHeatMap = createServerFn({ method: "GET" })
       const px = Number(o.fill_price ?? o.price ?? 0);
       const notional = qty * px;
       const upnl = Number((o as { unrealized_pnl?: number | null }).unrealized_pnl ?? 0);
-      const side = (o.side === "buy" || o.side === "sell") ? o.side : "buy";
+      const side = o.side === "buy" || o.side === "sell" ? o.side : "buy";
       const prev = byS.get(sym);
       if (!prev) {
         byS.set(sym, {
-          symbol: sym, side, notional, quantity: qty,
-          unrealizedPnl: upnl, positions: 1, exposurePct: 0,
+          symbol: sym,
+          side,
+          notional,
+          quantity: qty,
+          unrealizedPnl: upnl,
+          positions: 1,
+          exposurePct: 0,
         });
       } else {
         prev.notional += notional;

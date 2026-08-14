@@ -58,10 +58,7 @@ function stripeAuth(): string {
 }
 
 /** POST to Stripe REST API with form-urlencoded body. */
-async function stripePost<T>(
-  path: string,
-  body: Record<string, string | undefined>,
-): Promise<T> {
+async function stripePost<T>(path: string, body: Record<string, string | undefined>): Promise<T> {
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(body)) {
     if (v !== undefined) params.set(k, v);
@@ -111,11 +108,11 @@ export async function createCheckoutSession(params: {
   metadata: Record<string, string>;
 }): Promise<{ sessionId: string; url: string | null }> {
   const body: Record<string, string | undefined> = {
-    "mode": params.mode,
-    "success_url": params.successUrl,
-    "cancel_url": params.cancelUrl,
-    "client_reference_id": params.clientReferenceId,
-    "customer_email": params.customerEmail,
+    mode: params.mode,
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+    client_reference_id: params.clientReferenceId,
+    customer_email: params.customerEmail,
     "line_items[0][price]": params.priceId,
     "line_items[0][quantity]": "1",
   };
@@ -124,22 +121,15 @@ export async function createCheckoutSession(params: {
     body[`metadata[${k}]`] = v;
   }
 
-  const session = await stripePost<StripeCheckoutSession>(
-    "/checkout/sessions",
-    body,
-  );
+  const session = await stripePost<StripeCheckoutSession>("/checkout/sessions", body);
   return { sessionId: session.id, url: session.url };
 }
 
 /**
  * Retrieve a Checkout Session (expands customer, subscription, line_items).
  */
-export async function retrieveCheckoutSession(
-  sessionId: string,
-): Promise<StripeCheckoutSession> {
-  return stripeGet<StripeCheckoutSession>(
-    `/checkout/sessions/${sessionId}`,
-  );
+export async function retrieveCheckoutSession(sessionId: string): Promise<StripeCheckoutSession> {
+  return stripeGet<StripeCheckoutSession>(`/checkout/sessions/${sessionId}`);
 }
 
 /**
@@ -149,13 +139,10 @@ export async function createBillingPortalSession(params: {
   customerId: string;
   returnUrl: string;
 }): Promise<{ url: string }> {
-  const result = await stripePost<{ url: string }>(
-    "/billing_portal/sessions",
-    {
-      customer: params.customerId,
-      return_url: params.returnUrl,
-    },
-  );
+  const result = await stripePost<{ url: string }>("/billing_portal/sessions", {
+    customer: params.customerId,
+    return_url: params.returnUrl,
+  });
   return { url: result.url };
 }
 
@@ -198,10 +185,7 @@ export async function createOrRetrieveCustomer(
  *
  * Returns the parsed event payload on success, or throws on failure.
  */
-export function constructWebhookEvent(
-  rawBody: string,
-  sigHeader: string | null,
-): StripeEvent {
+export function constructWebhookEvent(rawBody: string, sigHeader: string | null): StripeEvent {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) {
     throw new Error("STRIPE_WEBHOOK_SECRET is not set");
@@ -232,9 +216,7 @@ export function constructWebhookEvent(
   }
 
   // Compute expected signature: HMAC-SHA256 of `${timestamp}.${rawBody}`
-  const expected = createHmac("sha256", secret)
-    .update(`${timestamp}.${rawBody}`)
-    .digest("hex");
+  const expected = createHmac("sha256", secret).update(`${timestamp}.${rawBody}`).digest("hex");
 
   // Compare using timing-safe equality
   const expectedBuf = Buffer.from(expected);
@@ -272,20 +254,12 @@ export function constructWebhookEvent(
  * Creates/updates: invoices, payments, subscriptions, and optionally grants
  * a role via user_roles.
  */
-export async function handleCheckoutCompleted(
-  session: StripeCheckoutSession,
-): Promise<void> {
-  const { supabaseAdmin } = await import(
-    "@/integrations/supabase/client.server"
-  );
+export async function handleCheckoutCompleted(session: StripeCheckoutSession): Promise<void> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  const userId = session.client_reference_id ??
-    session.metadata?.user_id;
+  const userId = session.client_reference_id ?? session.metadata?.user_id;
   if (!userId) {
-    console.warn(
-      "[stripe] handleCheckoutCompleted: no user_id in session",
-      session.id,
-    );
+    console.warn("[stripe] handleCheckoutCompleted: no user_id in session", session.id);
     return;
   }
 
@@ -300,17 +274,15 @@ export async function handleCheckoutCompleted(
 
   // Create payment record (non-critical — invoice/subscription still processed)
   try {
-    await supabaseAdmin
-      .from("payments")
-      .insert({
-        user_id: userId,
-        amount: amountTotal / 100, // Stripe amounts are in cents
-        currency,
-        provider: "stripe",
-        external_payment_ref: session.id,
-        status: "paid",
-        paid_at: new Date().toISOString(),
-      });
+    await supabaseAdmin.from("payments").insert({
+      user_id: userId,
+      amount: amountTotal / 100, // Stripe amounts are in cents
+      currency,
+      provider: "stripe",
+      external_payment_ref: session.id,
+      status: "paid",
+      paid_at: new Date().toISOString(),
+    });
   } catch {
     // payment creation is non-critical; continue
   }
@@ -385,9 +357,7 @@ export async function handleCheckoutCompleted(
       .eq("role", "user")
       .maybeSingle();
     if (!existingRole) {
-      await supabaseAdmin
-        .from("user_roles")
-        .insert({ user_id: userId, role: "user" });
+      await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "user" });
     }
   } catch {
     // role grant is non-critical; ignore duplicate key errors

@@ -71,9 +71,10 @@ function simulateFill(
 ): { fillPrice: number; filledQuantity: number } {
   if (entry) {
     // Limit order: fill at limit price if it's within reasonable range
-    const isReachable = side === "long"
-      ? currentPrice <= entry * 1.005 // within 0.5% of entry
-      : currentPrice >= entry * 0.995;
+    const isReachable =
+      side === "long"
+        ? currentPrice <= entry * 1.005 // within 0.5% of entry
+        : currentPrice >= entry * 0.995;
     if (!isReachable) {
       // Partial fill or no fill — simulate 30% fill at limit
       const fillQty = quantity * 0.3;
@@ -88,9 +89,7 @@ function simulateFill(
 
 // ---- Main executor interface ------------------------------------------------
 
-export async function paperPlace(
-  o: PlaceOrderInput,
-): Promise<PlaceOrderResult> {
+export async function paperPlace(o: PlaceOrderInput): Promise<PlaceOrderResult> {
   const currentPrice = await getPrice(o.symbol);
   if (!currentPrice) {
     return {
@@ -119,17 +118,11 @@ export async function paperPlace(
   };
 }
 
-export async function paperCancel(
-  _symbol: string,
-  _id: string,
-): Promise<void> {
+export async function paperCancel(_symbol: string, _id: string): Promise<void> {
   return;
 }
 
-export async function paperFetch(
-  _symbol: string,
-  _id: string,
-): Promise<FetchOrderResult> {
+export async function paperFetch(_symbol: string, _id: string): Promise<FetchOrderResult> {
   // For paper trades, just return a generic "filled" status
   return {
     exchangeOrderId: _id,

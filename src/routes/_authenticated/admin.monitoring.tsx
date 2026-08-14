@@ -8,10 +8,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { RefreshCw, AlertTriangle, CheckCircle2, Clock, Download, X } from "lucide-react";
 
@@ -56,9 +65,7 @@ export const Route = createFileRoute("/_authenticated/admin/monitoring")({
   loaderDeps: ({ search }) => search,
   loader: ({ context, deps }) => context.queryClient.ensureQueryData(buildOpts(deps)),
   component: Page,
-  errorComponent: ({ error }) => (
-    <p className="text-sm text-destructive">{error.message}</p>
-  ),
+  errorComponent: ({ error }) => <p className="text-sm text-destructive">{error.message}</p>,
   notFoundComponent: () => <p>Not found.</p>,
 });
 
@@ -145,8 +152,18 @@ function Page() {
         error_message: o.error_message,
       })),
       [
-        "created_at", "order_id", "user_id", "user_email", "user_name",
-        "symbol", "side", "status", "quantity", "price", "fill_price", "error_message",
+        "created_at",
+        "order_id",
+        "user_id",
+        "user_email",
+        "user_name",
+        "symbol",
+        "side",
+        "status",
+        "quantity",
+        "price",
+        "fill_price",
+        "error_message",
       ],
     );
 
@@ -196,7 +213,9 @@ function Page() {
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
                 {STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -251,17 +270,14 @@ function Page() {
               max={2000}
               className="mt-1"
               value={search.limit ?? 100}
-              onChange={(e) =>
-                setSearch({ limit: Number(e.currentTarget.value) || undefined })
-              }
+              onChange={(e) => setSearch({ limit: Number(e.currentTarget.value) || undefined })}
             />
           </div>
         </div>
         {hasFilters && (
           <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
             <span>
-              Showing {data.recent.length} executions in window
-              {" "}
+              Showing {data.recent.length} executions in window{" "}
               {new Date(data.filters.from).toLocaleString()} →{" "}
               {new Date(data.filters.to).toLocaleString()}
             </span>
@@ -290,18 +306,14 @@ function Page() {
         </Card>
         <Card>
           <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Filled (24h)
-            </p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Filled (24h)</p>
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
           </div>
           <p className="mt-2 text-2xl font-semibold">{data.queue.filledLast24h}</p>
         </Card>
         <Card>
           <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Pending
-            </p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Pending</p>
             <Clock className="h-4 w-4 text-amber-500" />
           </div>
           <p className="mt-2 text-2xl font-semibold">
@@ -310,9 +322,7 @@ function Page() {
         </Card>
         <Card>
           <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Open
-            </p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Open</p>
             <Badge variant="secondary">live</Badge>
           </div>
           <p className="mt-2 text-2xl font-semibold">
@@ -343,9 +353,7 @@ function Page() {
         <Card>
           <h2 className="text-sm font-semibold">Top failure reasons</h2>
           {data.topFailureReasons.length === 0 ? (
-            <p className="mt-3 text-sm text-muted-foreground">
-              No failures in window. 🎉
-            </p>
+            <p className="mt-3 text-sm text-muted-foreground">No failures in window. 🎉</p>
           ) : (
             <Table className="mt-3">
               <TableHeader>
@@ -362,9 +370,7 @@ function Page() {
                     onClick={() => setSearch({ reason: r.reason, status: "FAILED" })}
                   >
                     <TableCell className="font-mono text-xs">{r.reason}</TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {r.count}
-                    </TableCell>
+                    <TableCell className="text-right font-semibold">{r.count}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -398,12 +404,8 @@ function Page() {
                         {r.orderId.slice(0, 8)}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {r.order ? <StatusPill status={r.order.status} /> : "—"}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {r.attempts}
-                    </TableCell>
+                    <TableCell>{r.order ? <StatusPill status={r.order.status} /> : "—"}</TableCell>
+                    <TableCell className="text-right font-semibold">{r.attempts}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {fmtTime(r.lastAt)}
                     </TableCell>
@@ -418,9 +420,7 @@ function Page() {
       {/* Recent executions */}
       <Card className="mt-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">
-            Recent executions ({data.recent.length})
-          </h2>
+          <h2 className="text-sm font-semibold">Recent executions ({data.recent.length})</h2>
         </div>
         <div className="mt-3 overflow-x-auto">
           <Table>
@@ -445,9 +445,7 @@ function Page() {
                   <TableCell className="text-xs">{o.user_email ?? "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{o.symbol}</TableCell>
                   <TableCell>
-                    <Badge variant={o.side === "BUY" ? "default" : "secondary"}>
-                      {o.side}
-                    </Badge>
+                    <Badge variant={o.side === "BUY" ? "default" : "secondary"}>{o.side}</Badge>
                   </TableCell>
                   <TableCell>
                     <StatusPill status={o.status} />

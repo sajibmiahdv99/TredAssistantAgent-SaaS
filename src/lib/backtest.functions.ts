@@ -5,19 +5,21 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export const createBacktest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({
-      name: z.string().min(1).max(120),
-      start_date: z.string(),
-      end_date: z.string(),
-      initial_balance: z.number().positive().max(10_000_000),
-      fee_pct: z.number().min(0).max(1).default(0.05),
-      channel_ids: z.array(z.string().uuid()).optional(),
-      symbols: z.array(z.string()).optional(),
-      risk_per_trade_percent: z.number().min(0.01).max(20).optional(),
-      max_trade_size_percent: z.number().min(0.1).max(100).optional(),
-      max_open_positions: z.number().int().min(1).max(50).optional(),
-      hold_timeout_hours: z.number().int().min(1).max(168).optional(),
-    }).parse(d),
+    z
+      .object({
+        name: z.string().min(1).max(120),
+        start_date: z.string(),
+        end_date: z.string(),
+        initial_balance: z.number().positive().max(10_000_000),
+        fee_pct: z.number().min(0).max(1).default(0.05),
+        channel_ids: z.array(z.string().uuid()).optional(),
+        symbols: z.array(z.string()).optional(),
+        risk_per_trade_percent: z.number().min(0.01).max(20).optional(),
+        max_trade_size_percent: z.number().min(0.1).max(100).optional(),
+        max_open_positions: z.number().int().min(1).max(50).optional(),
+        hold_timeout_hours: z.number().int().min(1).max(168).optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const start = new Date(data.start_date);
@@ -56,7 +58,9 @@ export const listBacktests = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("backtest_runs")
-      .select("id, name, status, start_date, end_date, initial_balance, progress, summary, error, created_at, completed_at")
+      .select(
+        "id, name, status, start_date, end_date, initial_balance, progress, summary, error, created_at, completed_at",
+      )
       .order("created_at", { ascending: false })
       .limit(50);
     if (error) throw new Error(error.message);
@@ -69,7 +73,11 @@ export const getBacktest = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const [run, trades] = await Promise.all([
       context.supabase.from("backtest_runs").select("*").eq("id", data.id).single(),
-      context.supabase.from("backtest_trades").select("*").eq("run_id", data.id).order("entry_time"),
+      context.supabase
+        .from("backtest_trades")
+        .select("*")
+        .eq("run_id", data.id)
+        .order("entry_time"),
     ]);
     if (run.error) throw new Error(run.error.message);
     return { run: run.data, trades: trades.data ?? [] };
@@ -118,7 +126,8 @@ const gridSchema = z
 
 const MAX_COMBOS = 24;
 
-type GridKey = "risk_per_trade_percent" | "max_trade_size_percent" | "max_open_positions" | "hold_timeout_hours";
+type GridKey =
+  "risk_per_trade_percent" | "max_trade_size_percent" | "max_open_positions" | "hold_timeout_hours";
 
 const DEFAULTS: Record<GridKey, number> = {
   risk_per_trade_percent: 1,
@@ -128,11 +137,19 @@ const DEFAULTS: Record<GridKey, number> = {
 };
 
 function cartesianCombos(grid: Partial<Record<GridKey, number[]>>): Array<Record<GridKey, number>> {
-  const keys: GridKey[] = ["risk_per_trade_percent", "max_trade_size_percent", "max_open_positions", "hold_timeout_hours"];
+  const keys: GridKey[] = [
+    "risk_per_trade_percent",
+    "max_trade_size_percent",
+    "max_open_positions",
+    "hold_timeout_hours",
+  ];
   const dims = keys.map((k) => (grid[k]?.length ? grid[k]! : [DEFAULTS[k]]));
   const out: Array<Record<GridKey, number>> = [];
   const rec = (i: number, acc: Partial<Record<GridKey, number>>) => {
-    if (i === keys.length) { out.push(acc as Record<GridKey, number>); return; }
+    if (i === keys.length) {
+      out.push(acc as Record<GridKey, number>);
+      return;
+    }
     for (const v of dims[i]) rec(i + 1, { ...acc, [keys[i]]: v });
   };
   rec(0, {});
@@ -142,16 +159,18 @@ function cartesianCombos(grid: Partial<Record<GridKey, number[]>>): Array<Record
 export const createRiskOptimization = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({
-      name: z.string().min(1).max(120),
-      start_date: z.string(),
-      end_date: z.string(),
-      initial_balance: z.number().positive().max(10_000_000),
-      fee_pct: z.number().min(0).max(1).default(0.05),
-      channel_ids: z.array(z.string().uuid()).optional(),
-      symbols: z.array(z.string()).optional(),
-      grid: gridSchema,
-    }).parse(d),
+    z
+      .object({
+        name: z.string().min(1).max(120),
+        start_date: z.string(),
+        end_date: z.string(),
+        initial_balance: z.number().positive().max(10_000_000),
+        fee_pct: z.number().min(0).max(1).default(0.05),
+        channel_ids: z.array(z.string().uuid()).optional(),
+        symbols: z.array(z.string()).optional(),
+        grid: gridSchema,
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const start = new Date(data.start_date);
@@ -162,7 +181,9 @@ export const createRiskOptimization = createServerFn({ method: "POST" })
 
     const combos = cartesianCombos(data.grid as Partial<Record<GridKey, number[]>>);
     if (combos.length > MAX_COMBOS) {
-      throw new Error(`This grid produces ${combos.length} configurations, but the maximum is ${MAX_COMBOS} (~${MAX_COMBOS} minutes at 1 backtest/minute). Narrow the ranges and try again.`);
+      throw new Error(
+        `This grid produces ${combos.length} configurations, but the maximum is ${MAX_COMBOS} (~${MAX_COMBOS} minutes at 1 backtest/minute). Narrow the ranges and try again.`,
+      );
     }
 
     const baseConfig = {
@@ -213,7 +234,9 @@ export const listRiskOptimizations = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("risk_optimizer_runs")
-      .select("id, name, status, start_date, end_date, initial_balance, total_combos, completed_combos, best_backtest_run_id, error, created_at, completed_at")
+      .select(
+        "id, name, status, start_date, end_date, initial_balance, total_combos, completed_combos, best_backtest_run_id, error, created_at, completed_at",
+      )
       .order("created_at", { ascending: false })
       .limit(50);
     if (error) throw new Error(error.message);
@@ -266,9 +289,12 @@ export const applyOptimizedConfig = createServerFn({ method: "POST" })
       max_trade_size_percent?: number;
       max_open_positions?: number;
     } = {};
-    if (typeof cfg.risk_per_trade_percent === "number") patch.risk_per_trade_percent = cfg.risk_per_trade_percent;
-    if (typeof cfg.max_trade_size_percent === "number") patch.max_trade_size_percent = cfg.max_trade_size_percent;
-    if (typeof cfg.max_open_positions === "number") patch.max_open_positions = cfg.max_open_positions;
+    if (typeof cfg.risk_per_trade_percent === "number")
+      patch.risk_per_trade_percent = cfg.risk_per_trade_percent;
+    if (typeof cfg.max_trade_size_percent === "number")
+      patch.max_trade_size_percent = cfg.max_trade_size_percent;
+    if (typeof cfg.max_open_positions === "number")
+      patch.max_open_positions = cfg.max_open_positions;
     if (Object.keys(patch).length === 0) throw new Error("No applicable fields to apply");
 
     const { error: upErr } = await context.supabase

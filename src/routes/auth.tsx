@@ -67,7 +67,6 @@ function AuthPage() {
     // If arriving here via router-guard redirect with an active aal1 session,
     // immediately show the TOTP challenge without requiring password re-entry.
     checkAalAndMaybePromptMfa().catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function onSubmit(e: React.FormEvent) {
@@ -134,7 +133,9 @@ function AuthPage() {
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8">
           <Link to="/" className="mb-6 flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">{BRAND.logoInitial}</span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
+              {BRAND.logoInitial}
+            </span>
             <span className="text-lg font-semibold">{BRAND.name}</span>
           </Link>
           <h1 className="text-2xl font-semibold">Two-factor authentication</h1>
@@ -179,10 +180,14 @@ function AuthPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8">
         <Link to="/" className="mb-6 flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">{BRAND.logoInitial}</span>
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
+            {BRAND.logoInitial}
+          </span>
           <span className="text-lg font-semibold">{BRAND.name}</span>
         </Link>
-        <h1 className="text-2xl font-semibold">{isSignup ? "Create your account" : "Welcome back"}</h1>
+        <h1 className="text-2xl font-semibold">
+          {isSignup ? "Create your account" : "Welcome back"}
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {isSignup ? "Start your 7-day free trial." : "Sign in to your workstation."}
         </p>
@@ -190,22 +195,35 @@ function AuthPage() {
         <form onSubmit={onSubmit} className="mt-6 space-y-3">
           {isSignup && (
             <input
-              type="text" required placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)}
+              type="text"
+              required
+              placeholder="Full name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
             />
           )}
           <input
-            type="email" required placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            required
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
           />
           <input
-            type="password" required minLength={6} placeholder="Password" value={password}
+            type="password"
+            required
+            minLength={6}
+            placeholder="Password"
+            value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
           />
           {err && <p className="text-sm text-destructive">{err}</p>}
           <button
-            type="submit" disabled={busy}
+            type="submit"
+            disabled={busy}
             className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             {busy ? "…" : isSignup ? "Create account" : "Sign in"}

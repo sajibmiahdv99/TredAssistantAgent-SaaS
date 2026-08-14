@@ -29,7 +29,8 @@ async function performSync(opts: {
   encPassphrase: string | null;
 }) {
   const { decryptSecret } = await import("@/lib/crypto.server");
-  const { fetchExchangeBalances, valuateUsd } = await import("@/lib/exchanges/balanceFetcher.server");
+  const { fetchExchangeBalances, valuateUsd } =
+    await import("@/lib/exchanges/balanceFetcher.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const apiKey = decryptSecret(opts.encApiKey).trim();
@@ -120,7 +121,11 @@ export const syncExchangeBalance = createServerFn({ method: "POST" })
   });
 
 // Service-role helper used by the cron hook. Not exposed via RPC.
-export async function syncAllExchangeBalances(): Promise<{ scanned: number; ok: number; failed: number }> {
+export async function syncAllExchangeBalances(): Promise<{
+  scanned: number;
+  ok: number;
+  failed: number;
+}> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: accounts, error } = await supabaseAdmin
     .from("exchange_accounts")

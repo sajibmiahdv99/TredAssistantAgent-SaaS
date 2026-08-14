@@ -1,7 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { PageHeader, EmptyState } from "@/components/PageHeader";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { adminListPayments } from "@/lib/admin.functions";
 
@@ -19,7 +26,9 @@ function Page() {
   return (
     <>
       <PageHeader title="Payments" subtitle={`${data.length} records`} />
-      {data.length === 0 ? <EmptyState title="No payments" description="Payments will appear once a customer pays." /> : (
+      {data.length === 0 ? (
+        <EmptyState title="No payments" description="Payments will appear once a customer pays." />
+      ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <Table>
             <TableHeader>
@@ -35,12 +44,20 @@ function Page() {
             <TableBody>
               {data.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell className="text-xs">{new Date(p.created_at).toLocaleString()}</TableCell>
+                  <TableCell className="text-xs">
+                    {new Date(p.created_at).toLocaleString()}
+                  </TableCell>
                   <TableCell className="font-mono text-xs">{p.user_id.slice(0, 8)}…</TableCell>
                   <TableCell>{p.provider}</TableCell>
-                  <TableCell>{Number(p.amount).toFixed(2)} {p.currency ?? ""}</TableCell>
-                  <TableCell><Badge variant={p.status === "paid" ? "default" : "outline"}>{p.status}</Badge></TableCell>
-                  <TableCell className="font-mono text-xs">{p.external_payment_ref ?? "—"}</TableCell>
+                  <TableCell>
+                    {Number(p.amount).toFixed(2)} {p.currency ?? ""}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={p.status === "paid" ? "default" : "outline"}>{p.status}</Badge>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {p.external_payment_ref ?? "—"}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -1,4 +1,3 @@
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -84,8 +83,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Automated Crypto Signal Trading" },
       {
         property: "og:description",
-        content:
-          "Auto-trade Telegram signals across your exchanges with built-in risk controls.",
+        content: "Auto-trade Telegram signals across your exchanges with built-in risk controls.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

@@ -1,7 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { PageHeader, EmptyState } from "@/components/PageHeader";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { adminListAuditLogs } from "@/lib/admin.functions";
 
 const opts = queryOptions({ queryKey: ["admin", "audit"], queryFn: () => adminListAuditLogs() });
@@ -18,7 +25,9 @@ function Page() {
   return (
     <>
       <PageHeader title="Audit Logs" subtitle={`Last ${data.length} events`} />
-      {data.length === 0 ? <EmptyState title="No audit events" description="Privileged actions will be logged here." /> : (
+      {data.length === 0 ? (
+        <EmptyState title="No audit events" description="Privileged actions will be logged here." />
+      ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <Table>
             <TableHeader>
@@ -33,11 +42,16 @@ function Page() {
             <TableBody>
               {data.map((l) => (
                 <TableRow key={l.id}>
-                  <TableCell className="text-xs">{new Date(l.created_at).toLocaleString()}</TableCell>
+                  <TableCell className="text-xs">
+                    {new Date(l.created_at).toLocaleString()}
+                  </TableCell>
                   <TableCell className="text-xs">{l.actor_email}</TableCell>
                   <TableCell className="text-xs">{l.actor_role}</TableCell>
                   <TableCell className="font-mono text-xs">{l.action}</TableCell>
-                  <TableCell className="font-mono text-xs">{l.resource_type}{l.resource_id ? `:${l.resource_id.slice(0, 8)}` : ""}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {l.resource_type}
+                    {l.resource_id ? `:${l.resource_id.slice(0, 8)}` : ""}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

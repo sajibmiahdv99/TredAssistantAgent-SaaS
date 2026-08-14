@@ -14,7 +14,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export const COMMISSION_RATES: Record<number, number> = {
   1: 30, // 30% direct
   2: 10, // 10% second level
-  3: 5,  // 5% third level
+  3: 5, // 5% third level
 };
 export const MAX_AFFILIATE_DEPTH = 3;
 
@@ -57,7 +57,16 @@ export async function distributeAffiliateCommissions(params: {
   while (currentUserId && level <= MAX_AFFILIATE_DEPTH) {
     chain.push({ userId: currentUserId, level });
 
-    const { data: aff } = await supabaseAdmin
+    const {
+      data: aff,
+    }: {
+      data: {
+        user_id: string;
+        is_approved: boolean | null;
+        is_recurring_eligible: boolean | null;
+        parent_affiliate_id: string | null;
+      } | null;
+    } = await supabaseAdmin
       .from("affiliates")
       .select("user_id,is_approved,is_recurring_eligible,parent_affiliate_id")
       .eq("user_id", currentUserId)
@@ -99,14 +108,6 @@ export async function distributeAffiliateCommissions(params: {
       console.error("[affiliate] commission insert failed", error.message);
       continue;
     }
-
-    // Bump affiliate totals
-    await supabaseAdmin
-      .from("affiliates")
-      .update({
-        total_earned: supabaseAdmin.rpc ? undefined : undefined, // handled below
-      })
-      .eq("user_id", link.userId);
 
     // Adjust affiliate counters via SQL-safe increment: read-modify-write
     const { data: affRow } = await supabaseAdmin
@@ -152,20 +153,35 @@ export const getAffiliateOverview = createServerFn({ method: "GET" })
 
     const [aff, cm, profile] = await Promise.all([
       sb.from("affiliates").select("*").eq("user_id", uid).maybeSingle(),
-      sb.from("affiliate_commissions").select("id,amount,level,status,created_at").eq("referred_by_id", uid).order("created_at", { ascending: false }).limit(100),
-      sb.from("profiles").select("referral_code,referred_by").eq("id", uid).maybeSingle(),
+      sb
+        .from("affiliate_commissions")
+        .select("id,amount,level,status,created_at")
+        .eq("referred_by_id", uid)
+        .order("created_at", { ascending: false })
+        .limit(100),
+      sb.from("profiles").select("referral_code").eq("id", uid).maybeSingle(),
     ]);
     if (aff.error) throw new Error(aff.error.message);
     if (cm.error) throw new Error(cm.error.message);
 
-    const commissions = (cm.data ?? []) as Array<{ id: string; amount: number; level: number; status: string; created_at: string }>;
-    const pending = commissions.filter((c) => c.status === "pending").reduce((s, c) => s + Number(c.amount), 0);
-    const paid = commissions.filter((c) => c.status === "paid").reduce((s, c) => s + Number(c.amount), 0);
+    const commissions = (cm.data ?? []) as Array<{
+      id: string;
+      amount: number;
+      level: number;
+      status: string;
+      created_at: string;
+    }>;
+    const pending = commissions
+      .filter((c) => c.status === "pending")
+      .reduce((s, c) => s + Number(c.amount), 0);
+    const paid = commissions
+      .filter((c) => c.status === "paid")
+      .reduce((s, c) => s + Number(c.amount), 0);
 
     return {
       affiliate: aff.data,
-      referralCode: profile.data?.referral_code ?? null,
-      referredBy: profile.data?.referred_by ?? null,
+      referralCode: profile.data?.referral_code ?? aff.data?.referral_code ?? null,
+      referredBy: aff.data?.referred_by ?? null,
       commissions,
       totals: { pending, paid, earned: pending + paid },
       rates: COMMISSION_RATES,

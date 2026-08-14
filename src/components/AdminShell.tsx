@@ -1,8 +1,23 @@
 import { useState, type ReactNode } from "react";
 import { Link, Outlet, useRouter, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, Users, CreditCard, DollarSign, Radio, FileCheck, TrendingUp,
-  ShieldCheck, UserCheck, Landmark, LifeBuoy, FileText, Settings, ArrowLeft, Menu, X, LogOut,
+  LayoutDashboard,
+  Users,
+  CreditCard,
+  DollarSign,
+  Radio,
+  FileCheck,
+  TrendingUp,
+  ShieldCheck,
+  UserCheck,
+  Landmark,
+  LifeBuoy,
+  FileText,
+  Settings,
+  ArrowLeft,
+  Menu,
+  X,
+  LogOut,
   Activity,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,19 +79,29 @@ export function AdminShell({ children }: { children?: ReactNode }) {
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-sidebar lg:flex">
         <div className="p-5">
           <div className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-500 text-sm font-bold text-background">{BRAND.adminInitial}</span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-500 text-sm font-bold text-background">
+              {BRAND.adminInitial}
+            </span>
             <div>
               <div className="text-base font-semibold leading-none">Admin Panel</div>
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground mt-1">{BRAND.name}</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground mt-1">
+                {BRAND.name}
+              </div>
             </div>
           </div>
         </div>
         <NavList />
         <div className="space-y-2 border-t border-border p-4">
-          <Link to="/app" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to="/app"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="h-4 w-4" /> Back to app
           </Link>
-          <button onClick={signOut} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <button
+            onClick={signOut}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
             <LogOut className="h-4 w-4" /> Sign out
           </button>
         </div>
@@ -88,7 +113,9 @@ export function AdminShell({ children }: { children?: ReactNode }) {
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
           <span className="font-semibold text-amber-400">Admin</span>
-          <Link to="/app" className="p-2 text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
+          <Link to="/app" className="p-2 text-muted-foreground">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
         </div>
         {open && (
           <div className="border-b border-border bg-sidebar p-3 lg:hidden">

@@ -62,17 +62,15 @@ export const Route = createFileRoute("/api/public/hooks/sync-positions")({
         const provided = request.headers.get("x-cron-secret") ?? "";
         if (!expected || !provided || !safeEqual(provided, expected)) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
-            status: 401, headers: { "Content-Type": "application/json" },
+            status: 401,
+            headers: { "Content-Type": "application/json" },
           });
         }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { decryptSecret } = await import("@/lib/crypto.server");
-        const {
-          fetchExchangePosition,
-          fetchExchangeTicker,
-          isExchangeExecutable,
-        } = await import("@/lib/exchanges/executor.server");
+        const { fetchExchangePosition, fetchExchangeTicker, isExchangeExecutable } =
+          await import("@/lib/exchanges/executor.server");
 
         const results = { checked: 0, closed: 0, skipped: 0, errors: 0 };
 
@@ -88,18 +86,35 @@ export const Route = createFileRoute("/api/public/hooks/sync-positions")({
           .limit(BATCH);
 
         // Cache account row + decrypted creds
-        const acctCache = new Map<string, { acct: AcctRow; creds: { apiKey: string; apiSecret: string; passphrase?: string } } | null>();
+        const acctCache = new Map<
+          string,
+          {
+            acct: AcctRow;
+            creds: { apiKey: string; apiSecret: string; passphrase?: string };
+          } | null
+        >();
         async function loadAcct(id: string | null) {
           if (!id) return null;
           if (acctCache.has(id)) return acctCache.get(id)!;
           const { data } = await supabaseAdmin
             .from("exchange_accounts")
-            .select("id,exchange_code,execution_mode,encrypted_api_key,encrypted_api_secret,passphrase,status")
+            .select(
+              "id,exchange_code,execution_mode,encrypted_api_key,encrypted_api_secret,passphrase,status",
+            )
             .eq("id", id)
             .maybeSingle();
-          if (!data) { acctCache.set(id, null); return null; }
-          if (data.execution_mode === "paper") { acctCache.set(id, null); return null; }
-          if (!isExchangeExecutable(data.exchange_code)) { acctCache.set(id, null); return null; }
+          if (!data) {
+            acctCache.set(id, null);
+            return null;
+          }
+          if (data.execution_mode === "paper") {
+            acctCache.set(id, null);
+            return null;
+          }
+          if (!isExchangeExecutable(data.exchange_code)) {
+            acctCache.set(id, null);
+            return null;
+          }
           try {
             const creds = {
               apiKey: await decryptSecret(data.encrypted_api_key),
@@ -117,7 +132,12 @@ export const Route = createFileRoute("/api/public/hooks/sync-positions")({
 
         // Memoise position lookups per (acct, symbol)
         const posCache = new Map<string, Awaited<ReturnType<typeof fetchExchangePosition>>>();
-        async function pos(acctId: string, code: string, creds: { apiKey: string; apiSecret: string; passphrase?: string }, symbol: string) {
+        async function pos(
+          acctId: string,
+          code: string,
+          creds: { apiKey: string; apiSecret: string; passphrase?: string },
+          symbol: string,
+        ) {
           const k = `${acctId}:${symbol}`;
           if (posCache.has(k)) return posCache.get(k)!;
           try {
@@ -133,13 +153,22 @@ export const Route = createFileRoute("/api/public/hooks/sync-positions")({
         for (const o of (open ?? []) as OrderRow[]) {
           results.checked++;
           const entry = await loadAcct(o.exchange_account_id);
-          if (!entry) { results.skipped++; continue; }
+          if (!entry) {
+            results.skipped++;
+            continue;
+          }
           const snap = await pos(entry.acct.id, entry.acct.exchange_code, entry.creds, o.symbol);
-          if (!snap) { results.skipped++; continue; }
+          if (!snap) {
+            results.skipped++;
+            continue;
+          }
 
           // Position is flat for this symbol — exchange closed it (SL/TP/manual).
           if (Math.abs(snap.positionAmt) < 1e-9) {
-            const exit = snap.markPrice ?? (await fetchExchangeTicker(entry.acct.exchange_code, o.symbol)) ?? Number(o.fill_price ?? o.price ?? 0);
+            const exit =
+              snap.markPrice ??
+              (await fetchExchangeTicker(entry.acct.exchange_code, o.symbol)) ??
+              Number(o.fill_price ?? o.price ?? 0);
             const pnl = computePnl(o, exit);
 
             // Best-effort: infer reason from price vs SL/TP
@@ -157,26 +186,48 @@ export const Route = createFileRoute("/api/public/hooks/sync-positions")({
               .from("orders")
               .update({ status: "closed", pnl, error_message: null })
               .eq("id", o.id);
-            if (upErr) { results.errors++; continue; }
+            if (upErr) {
+              results.errors++;
+              continue;
+            }
 
             await supabaseAdmin.from("order_events").insert({
-              order_id: o.id, user_id: o.user_id,
-              event_type: reason,
-              from_status: "filled", to_status: "closed",
-              payload: { exit_price: exit, pnl, source: "exchange_sync", snapshot: JSON.parse(JSON.stringify(snap.raw ?? null)) },
-            });
-            await supabaseAdmin.from("notifications").insert({
+              order_id: o.id,
               user_id: o.user_id,
-              event_type: "evt_sl_tp",
-              title: reason === "tp_hit" ? "Take-profit hit" : reason === "sl_hit" ? "Stop-loss hit" : "Position closed",
-              body: `${o.symbol} ${o.side} closed at ${exit} (PnL: ${pnl.toFixed(2)})`,
-            }).then(() => undefined, () => undefined);
+              event_type: reason,
+              from_status: "filled",
+              to_status: "closed",
+              payload: {
+                exit_price: exit,
+                pnl,
+                source: "exchange_sync",
+                snapshot: JSON.parse(JSON.stringify(snap.raw ?? null)),
+              },
+            });
+            await supabaseAdmin
+              .from("notifications")
+              .insert({
+                user_id: o.user_id,
+                event_type: "evt_sl_tp",
+                title:
+                  reason === "tp_hit"
+                    ? "Take-profit hit"
+                    : reason === "sl_hit"
+                      ? "Stop-loss hit"
+                      : "Position closed",
+                body: `${o.symbol} ${o.side} closed at ${exit} (PnL: ${pnl.toFixed(2)})`,
+              })
+              .then(
+                () => undefined,
+                () => undefined,
+              );
             results.closed++;
           }
         }
 
         return new Response(JSON.stringify({ ok: true, ...results }), {
-          status: 200, headers: { "Content-Type": "application/json" },
+          status: 200,
+          headers: { "Content-Type": "application/json" },
         });
       },
     },

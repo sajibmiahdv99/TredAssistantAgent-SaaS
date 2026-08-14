@@ -56,7 +56,8 @@ export const Route = createFileRoute("/api/public/hooks/monitor-positions")({
         const provided = request.headers.get("x-cron-secret") ?? "";
         if (!expected || !provided || !safeEqual(provided, expected)) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
-            status: 401, headers: { "Content-Type": "application/json" },
+            status: 401,
+            headers: { "Content-Type": "application/json" },
           });
         }
 
@@ -120,9 +121,15 @@ export const Route = createFileRoute("/api/public/hooks/monitor-positions")({
         for (const o of (open ?? []) as OrderRow[]) {
           results.checked++;
           const code = await exchangeCodeFor(o.exchange_account_id);
-          if (!code) { results.skipped++; continue; }
+          if (!code) {
+            results.skipped++;
+            continue;
+          }
           const price = await ticker(code, o.symbol);
-          if (price == null) { results.skipped++; continue; }
+          if (price == null) {
+            results.skipped++;
+            continue;
+          }
 
           const long = isLong(o.side);
 
@@ -133,8 +140,8 @@ export const Route = createFileRoute("/api/public/hooks/monitor-positions")({
           if (levels.length > 0 && hitCount < levels.length) {
             const next = levels[hitCount];
             const nextPrice = Number(next?.price);
-            const reached = Number.isFinite(nextPrice) &&
-              (long ? price >= nextPrice : price <= nextPrice);
+            const reached =
+              Number.isFinite(nextPrice) && (long ? price >= nextPrice : price <= nextPrice);
             if (reached) {
               const isFinal = hitCount + 1 >= levels.length;
               const partialPnl = computePnl(o, price) * (Number(next.pct ?? 0) / 100);
@@ -146,19 +153,23 @@ export const Route = createFileRoute("/api/public/hooks/monitor-positions")({
                 })
                 .eq("id", o.id);
               await supabaseAdmin.from("order_events").insert({
-                order_id: o.id, user_id: o.user_id,
+                order_id: o.id,
+                user_id: o.user_id,
                 event_type: isFinal ? "tp_hit" : "tp_partial",
                 from_status: "filled",
                 to_status: isFinal ? "closed" : "filled",
-                payload: { exit_price: price, level: hitCount + 1, pct: next.pct, partial_pnl: partialPnl },
+                payload: {
+                  exit_price: price,
+                  level: hitCount + 1,
+                  pct: next.pct,
+                  partial_pnl: partialPnl,
+                },
               });
               if (isFinal) results.closed++;
               else results.trailing_updated++;
               continue;
             }
           }
-
-
 
           // 1) TP / SL hit detection
           let hit: "tp" | "sl" | null = null;
@@ -180,20 +191,31 @@ export const Route = createFileRoute("/api/public/hooks/monitor-positions")({
                 error_message: null,
               })
               .eq("id", o.id);
-            if (upErr) { results.errors++; continue; }
+            if (upErr) {
+              results.errors++;
+              continue;
+            }
             await supabaseAdmin.from("order_events").insert({
-              order_id: o.id, user_id: o.user_id,
+              order_id: o.id,
+              user_id: o.user_id,
               event_type: hit === "tp" ? "tp_hit" : "sl_hit",
-              from_status: "filled", to_status: "closed",
+              from_status: "filled",
+              to_status: "closed",
               payload: { exit_price: price, pnl, monitor: true },
             });
             // Best-effort: emit in-app notification
-            await supabaseAdmin.from("notifications").insert({
-              user_id: o.user_id,
-              event_type: hit === "tp" ? "evt_sl_tp" : "evt_sl_tp",
-              title: hit === "tp" ? "Take-profit hit" : "Stop-loss hit",
-              body: `${o.symbol} ${o.side} closed at ${price} (PnL: ${pnl.toFixed(2)})`,
-            }).then(() => undefined, () => undefined);
+            await supabaseAdmin
+              .from("notifications")
+              .insert({
+                user_id: o.user_id,
+                event_type: hit === "tp" ? "evt_sl_tp" : "evt_sl_tp",
+                title: hit === "tp" ? "Take-profit hit" : "Stop-loss hit",
+                body: `${o.symbol} ${o.side} closed at ${price} (PnL: ${pnl.toFixed(2)})`,
+              })
+              .then(
+                () => undefined,
+                () => undefined,
+              );
             results.closed++;
             continue;
           }
@@ -207,16 +229,28 @@ export const Route = createFileRoute("/api/public/hooks/monitor-positions")({
             let changed = false;
 
             if (long) {
-              if (wm == null || price > wm) { newWm = price; changed = true; }
+              if (wm == null || price > wm) {
+                newWm = price;
+                changed = true;
+              }
               if (newWm != null) {
                 const candidate = newWm - dist;
-                if (newSl == null || candidate > newSl) { newSl = candidate; changed = true; }
+                if (newSl == null || candidate > newSl) {
+                  newSl = candidate;
+                  changed = true;
+                }
               }
             } else {
-              if (wm == null || price < wm) { newWm = price; changed = true; }
+              if (wm == null || price < wm) {
+                newWm = price;
+                changed = true;
+              }
               if (newWm != null) {
                 const candidate = newWm + dist;
-                if (newSl == null || candidate < newSl) { newSl = candidate; changed = true; }
+                if (newSl == null || candidate < newSl) {
+                  newSl = candidate;
+                  changed = true;
+                }
               }
             }
 
@@ -226,9 +260,11 @@ export const Route = createFileRoute("/api/public/hooks/monitor-positions")({
                 .update({ trailing_high_watermark: newWm, stop_loss: newSl })
                 .eq("id", o.id);
               await supabaseAdmin.from("order_events").insert({
-                order_id: o.id, user_id: o.user_id,
+                order_id: o.id,
+                user_id: o.user_id,
                 event_type: "trailing_update",
-                from_status: "filled", to_status: "filled",
+                from_status: "filled",
+                to_status: "filled",
                 payload: { price, watermark: newWm, stop_loss: newSl },
               });
               results.trailing_updated++;
@@ -237,7 +273,8 @@ export const Route = createFileRoute("/api/public/hooks/monitor-positions")({
         }
 
         return new Response(JSON.stringify({ ok: true, ...results }), {
-          status: 200, headers: { "Content-Type": "application/json" },
+          status: 200,
+          headers: { "Content-Type": "application/json" },
         });
       },
     },

@@ -52,7 +52,13 @@ export async function sendLoginCode(phone: string): Promise<SendCodeResult> {
 }
 
 export type VerifyResult =
-  | { kind: "ok"; sessionString: string; userId: string; username: string | null; firstName: string | null }
+  | {
+      kind: "ok";
+      sessionString: string;
+      userId: string;
+      username: string | null;
+      firstName: string | null;
+    }
   | { kind: "needs_password"; sessionString: string };
 
 /** Step 2: submit the code. May indicate that a 2FA password is required. */
@@ -80,8 +86,11 @@ export async function verifyLoginCode(args: {
         username: user?.username ?? null,
         firstName: user?.firstName ?? null,
       };
-    } catch (err: any) {
-      const msg: string = err?.errorMessage ?? err?.message ?? "";
+    } catch (err: unknown) {
+      const msg: string =
+        (err as { errorMessage?: string })?.errorMessage ??
+        (err as { message?: string })?.message ??
+        "";
       if (msg === "SESSION_PASSWORD_NEEDED") {
         return {
           kind: "needs_password",
@@ -104,7 +113,12 @@ export async function verifyLoginPassword(args: {
   try {
     await client.signInWithPassword(
       { apiId: getCreds().apiId, apiHash: getCreds().apiHash },
-      { password: async () => args.password, onError: (e) => { throw e; } },
+      {
+        password: async () => args.password,
+        onError: (e) => {
+          throw e;
+        },
+      },
     );
     const me = (await client.getMe()) as Api.User;
     return {
@@ -150,7 +164,14 @@ export async function listDialogChannels(sessionString: string): Promise<DialogC
   try {
     const dialogs = await client.getDialogs({ limit: 1000, archived: false });
     for (const d of dialogs) {
-      const e: any = d.entity;
+      const e = d.entity as {
+        className?: string;
+        id?: { toString(): string };
+        title?: string;
+        username?: string | null;
+        broadcast?: boolean;
+        participantsCount?: number;
+      } | null;
       if (!e) continue;
       // Include Channels (broadcast + supergroups) and basic Chats (small groups).
       // Skip Users (1-on-1 DMs) — those are not signal sources.
@@ -175,7 +196,8 @@ export async function listDialogChannels(sessionString: string): Promise<DialogC
 
 /** Translate raw gramjs errors into user-friendly messages. */
 export function friendlyTelegramError(err: unknown): string {
-  const raw = (err as any)?.errorMessage ?? (err as any)?.message ?? String(err);
+  const asRecord = err as { errorMessage?: string; message?: string } | null;
+  const raw = asRecord?.errorMessage ?? asRecord?.message ?? String(err);
   const map: Record<string, string> = {
     PHONE_CODE_INVALID: "That code is incorrect. Please try again.",
     PHONE_CODE_EXPIRED: "That code has expired. Please resend a new one.",

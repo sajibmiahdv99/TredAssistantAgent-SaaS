@@ -24,7 +24,8 @@ export const Route = createFileRoute("/api/public/payment-webhook")({
         if (!secret) return new Response("not configured", { status: 503 });
 
         const raw = await request.text();
-        const sig = request.headers.get("x-nowpayments-sig") ?? request.headers.get("x-signature") ?? "";
+        const sig =
+          request.headers.get("x-nowpayments-sig") ?? request.headers.get("x-signature") ?? "";
         const expected = createHmac("sha512", secret).update(raw).digest("hex");
         const a = Buffer.from(sig);
         const b = Buffer.from(expected);

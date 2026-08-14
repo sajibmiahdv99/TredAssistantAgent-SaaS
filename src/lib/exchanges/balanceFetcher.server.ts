@@ -30,7 +30,9 @@ async function fetchBinance({ apiKey, apiSecret }: FetchInput): Promise<BalanceR
     headers: { "X-MBX-APIKEY": apiKey },
   });
   if (!res.ok) throw new Error(`Binance ${res.status}: ${await res.text()}`);
-  const json = (await res.json()) as { balances: { asset: string; free: string; locked: string }[] };
+  const json = (await res.json()) as {
+    balances: { asset: string; free: string; locked: string }[];
+  };
   return json.balances
     .map((b) => {
       const free = Number(b.free);
@@ -82,20 +84,25 @@ async function fetchOKX({ apiKey, apiSecret, passphrase }: FetchInput): Promise<
     headers: {
       "OK-ACCESS-KEY": apiKey,
       "OK-ACCESS-SIGN": Buffer.from(
-        require("crypto").createHmac("sha256", apiSecret).update(preSign).digest()
+        createHmac("sha256", apiSecret).update(preSign).digest(),
       ).toString("base64"),
       "OK-ACCESS-TIMESTAMP": ts,
       "OK-ACCESS-PASSPHRASE": passphrase ?? "",
     },
   });
   if (!res.ok) throw new Error(`OKX ${res.status}: ${await res.text()}`);
-  const json = (await res.json()) as { code: string; data: Array<{ ccy: string; availBal: string; frozenBal: string }> };
+  const json = (await res.json()) as {
+    code: string;
+    data: Array<{ ccy: string; availBal: string; frozenBal: string }>;
+  };
   if (json.code !== "0") throw new Error(`OKX balance: code ${json.code}`);
-  return json.data.map((b) => {
-    const free = Number(b.availBal);
-    const used = Number(b.frozenBal);
-    return { asset: b.ccy, free, used, total: free + used };
-  }).filter((b) => b.total > 0);
+  return json.data
+    .map((b) => {
+      const free = Number(b.availBal);
+      const used = Number(b.frozenBal);
+      return { asset: b.ccy, free, used, total: free + used };
+    })
+    .filter((b) => b.total > 0);
   void sig;
 }
 
@@ -106,33 +113,42 @@ async function fetchMEXC({ apiKey, apiSecret }: FetchInput): Promise<BalanceRow[
   const sig = sign(apiSecret, bodyStr + ts);
   const res = await fetch("https://futures.mexc.com/api/v1/private/account/assets", {
     headers: {
-      "ApiKey": apiKey,
+      ApiKey: apiKey,
       "Request-Time": ts,
-      "Signature": sig,
+      Signature: sig,
     },
   });
   if (!res.ok) throw new Error(`MEXC ${res.status}: ${await res.text()}`);
-  const json = (await res.json()) as { success: boolean; data: Array<{ currency: string; availableBalance: number; frozenBalance: number }> };
+  const json = (await res.json()) as {
+    success: boolean;
+    data: Array<{ currency: string; availableBalance: number; frozenBalance: number }>;
+  };
   if (!json.success) throw new Error("MEXC balance fetch failed");
-  return (json.data ?? []).map((b) => {
-    const free = Number(b.availableBalance ?? 0);
-    const used = Number(b.frozenBalance ?? 0);
-    return { asset: b.currency, free, used, total: free + used };
-  }).filter((b) => b.total > 0);
+  return (json.data ?? [])
+    .map((b) => {
+      const free = Number(b.availableBalance ?? 0);
+      const used = Number(b.frozenBalance ?? 0);
+      return { asset: b.currency, free, used, total: free + used };
+    })
+    .filter((b) => b.total > 0);
 }
 
 // ---- KuCoin Futures v1 -----------------------------------------------------
 const KUCOIN_API = "https://api-futures.kucoin.com";
 
 function kcSign(secret: string, ts: string, method: string, path: string, body: string): string {
-  return createHmac("sha256", secret).update(ts + method + path + body).digest("base64");
+  return createHmac("sha256", secret)
+    .update(ts + method + path + body)
+    .digest("base64");
 }
 
 async function fetchKuCoin({ apiKey, apiSecret, passphrase }: FetchInput): Promise<BalanceRow[]> {
   const ts = Date.now().toString();
   const path = "/api/v1/account-overview?currency=USDT";
   const sig = kcSign(apiSecret, ts, "GET", path, "");
-  const passphraseSig = createHmac("sha256", apiSecret).update(passphrase ?? "").digest("base64");
+  const passphraseSig = createHmac("sha256", apiSecret)
+    .update(passphrase ?? "")
+    .digest("base64");
   const res = await fetch(`${KUCOIN_API}${path}`, {
     headers: {
       "KC-API-KEY": apiKey,
@@ -143,7 +159,17 @@ async function fetchKuCoin({ apiKey, apiSecret, passphrase }: FetchInput): Promi
     },
   });
   if (!res.ok) throw new Error(`KuCoin ${res.status}: ${await res.text()}`);
-  const json = (await res.json()) as { code: string; msg: string; data: { accountEquity: number; availableBalance: number; orderMargin: number; frozenFunds: number; currency: string } | null };
+  const json = (await res.json()) as {
+    code: string;
+    msg: string;
+    data: {
+      accountEquity: number;
+      availableBalance: number;
+      orderMargin: number;
+      frozenFunds: number;
+      currency: string;
+    } | null;
+  };
   if (json.code !== "200000") throw new Error(`KuCoin: ${json.msg}`);
 
   // Also try to fetch other common stablecoin balances
@@ -170,17 +196,33 @@ async function fetchKuCoin({ apiKey, apiSecret, passphrase }: FetchInput): Promi
       },
     });
     if (btcRes.ok) {
-      const btcJson = (await btcRes.json()) as { code: string; data: { accountEquity: number; availableBalance: number; orderMargin: number; frozenFunds: number; currency: string } | null };
+      const btcJson = (await btcRes.json()) as {
+        code: string;
+        data: {
+          accountEquity: number;
+          availableBalance: number;
+          orderMargin: number;
+          frozenFunds: number;
+          currency: string;
+        } | null;
+      };
       if (btcJson.code === "200000" && btcJson.data) {
         const b = btcJson.data;
         const bTotal = Number(b.accountEquity ?? 0);
         if (bTotal > 0.00001) {
           const bFrozen = Number(b.frozenFunds ?? 0) + Number(b.orderMargin ?? 0);
-          rows.push({ asset: b.currency, free: Math.max(bTotal - bFrozen, 0), used: bFrozen, total: bTotal });
+          rows.push({
+            asset: b.currency,
+            free: Math.max(bTotal - bFrozen, 0),
+            used: bFrozen,
+            total: bTotal,
+          });
         }
       }
     }
-  } catch { /* non-critical — skip BTC */ }
+  } catch {
+    /* non-critical — skip BTC */
+  }
 
   return rows.filter((r) => r.total > 0);
 }
@@ -190,7 +232,9 @@ async function fetchBridge({ apiKey, apiSecret }: FetchInput): Promise<BalanceRo
   const url = apiKey.replace(/\/+$/, "") + "/balance";
   const res = await fetch(url, { headers: { Authorization: `Bearer ${apiSecret}` } });
   if (!res.ok) throw new Error(`Bridge ${res.status}: ${await res.text()}`);
-  const json = (await res.json()) as { balances?: Array<{ asset: string; free?: number; used?: number; total?: number }> };
+  const json = (await res.json()) as {
+    balances?: Array<{ asset: string; free?: number; used?: number; total?: number }>;
+  };
   return (json.balances ?? [])
     .map((b) => {
       const free = Number(b.free ?? 0);
@@ -202,11 +246,11 @@ async function fetchBridge({ apiKey, apiSecret }: FetchInput): Promise<BalanceRo
 }
 
 const ADAPTERS: Record<string, (i: FetchInput) => Promise<BalanceRow[]>> = {
-  binance:    fetchBinance,
-  bybit:      fetchBybit,
-  okx:        fetchOKX,
-  kucoin:     fetchKuCoin,
-  mexc:       fetchMEXC,
+  binance: fetchBinance,
+  bybit: fetchBybit,
+  okx: fetchOKX,
+  kucoin: fetchKuCoin,
+  mexc: fetchMEXC,
   mt5_bridge: fetchBridge,
   dex_bridge: fetchBridge,
 };
@@ -234,12 +278,22 @@ async function loadPrices(): Promise<Record<string, number>> {
   return map;
 }
 
-export async function valuateUsd(rows: BalanceRow[]): Promise<(BalanceRow & { usd_value: number | null })[]> {
+export async function valuateUsd(
+  rows: BalanceRow[],
+): Promise<(BalanceRow & { usd_value: number | null })[]> {
   const prices = await loadPrices();
   return rows.map((r) => {
     const a = r.asset.toUpperCase();
     let usd: number | null = null;
-    if (a === "USDT" || a === "USDC" || a === "BUSD" || a === "FDUSD" || a === "DAI" || a === "TUSD") usd = r.total;
+    if (
+      a === "USDT" ||
+      a === "USDC" ||
+      a === "BUSD" ||
+      a === "FDUSD" ||
+      a === "DAI" ||
+      a === "TUSD"
+    )
+      usd = r.total;
     else if (prices[`${a}USDT`]) usd = r.total * prices[`${a}USDT`];
     else if (prices[`${a}BUSD`]) usd = r.total * prices[`${a}BUSD`];
     return { ...r, usd_value: usd };

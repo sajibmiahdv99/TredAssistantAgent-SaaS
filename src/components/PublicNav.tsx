@@ -12,12 +12,21 @@ export function PublicNav() {
           <span className="text-lg font-semibold tracking-tight">{BRAND.name}</span>
         </Link>
         <nav className="hidden gap-6 text-sm text-muted-foreground md:flex">
-          <Link to="/pricing" className="hover:text-foreground">Pricing</Link>
-          <Link to="/affiliate" className="hover:text-foreground">Affiliate</Link>
-          <Link to="/faq" className="hover:text-foreground">FAQ</Link>
+          <Link to="/pricing" className="hover:text-foreground">
+            Pricing
+          </Link>
+          <Link to="/affiliate" className="hover:text-foreground">
+            Affiliate
+          </Link>
+          <Link to="/faq" className="hover:text-foreground">
+            FAQ
+          </Link>
         </nav>
         <div className="flex items-center gap-2">
-          <Link to="/auth" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to="/auth"
+            className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
             Sign in
           </Link>
           <Link
@@ -37,10 +46,16 @@ export function PublicFooter() {
   return (
     <footer className="border-t border-border bg-card/30">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-muted-foreground sm:flex-row">
-        <div>© {new Date().getFullYear()} {BRAND.footerName}</div>
+        <div>
+          © {new Date().getFullYear()} {BRAND.footerName}
+        </div>
         <div className="flex gap-4">
-          <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
-          <Link to="/terms" className="hover:text-foreground">Terms</Link>
+          <Link to="/privacy" className="hover:text-foreground">
+            Privacy
+          </Link>
+          <Link to="/terms" className="hover:text-foreground">
+            Terms
+          </Link>
         </div>
       </div>
     </footer>

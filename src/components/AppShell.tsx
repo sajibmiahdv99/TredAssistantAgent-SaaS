@@ -2,8 +2,26 @@ import { useState, type ReactNode } from "react";
 import { Link, Outlet, useRouter, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-  LayoutDashboard, Network, Send, ShieldCheck, TrendingUp, History,
-  BarChart3, CreditCard, Users, LifeBuoy, Settings, LogOut, Menu, X, Shield, Flame, FlaskConical, User, Store, SlidersHorizontal,
+  LayoutDashboard,
+  Network,
+  Send,
+  ShieldCheck,
+  TrendingUp,
+  History,
+  BarChart3,
+  CreditCard,
+  Users,
+  LifeBuoy,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  Shield,
+  Flame,
+  FlaskConical,
+  User,
+  Store,
+  SlidersHorizontal,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile } from "@/lib/profile.functions";
@@ -79,10 +97,14 @@ export function AppShell({ children }: { children?: ReactNode }) {
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-sidebar lg:flex">
         <div className="p-5">
           <Link to="/" className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">{BRAND.logoInitial}</span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
+              {BRAND.logoInitial}
+            </span>
             <div>
               <div className="text-base font-semibold leading-none">{BRAND.name}</div>
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground mt-1">{BRAND.tagline}</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground mt-1">
+                {BRAND.tagline}
+              </div>
             </div>
           </Link>
         </div>
@@ -93,11 +115,16 @@ export function AppShell({ children }: { children?: ReactNode }) {
               {profile.data?.full_name?.[0]?.toUpperCase() ?? "U"}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-medium">{profile.data?.full_name || "User"}</div>
+              <div className="truncate text-sm font-medium">
+                {profile.data?.full_name || "User"}
+              </div>
               <div className="truncate text-xs text-muted-foreground">{profile.data?.email}</div>
             </div>
           </div>
-          <button onClick={signOut} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <button
+            onClick={signOut}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
             <LogOut className="h-4 w-4" /> Sign out
           </button>
         </div>
@@ -109,10 +136,14 @@ export function AppShell({ children }: { children?: ReactNode }) {
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
           <div className="flex items-center gap-2">
-            <span className="grid h-7 w-7 place-items-center rounded-md bg-primary text-xs font-bold text-primary-foreground">{BRAND.logoInitial}</span>
+            <span className="grid h-7 w-7 place-items-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
+              {BRAND.logoInitial}
+            </span>
             <span className="font-semibold">{BRAND.name}</span>
           </div>
-          <button onClick={signOut} className="p-2 text-muted-foreground"><LogOut className="h-5 w-5" /></button>
+          <button onClick={signOut} className="p-2 text-muted-foreground">
+            <LogOut className="h-5 w-5" />
+          </button>
         </div>
         {open && (
           <div className="border-b border-border bg-sidebar p-3 lg:hidden">

@@ -39,13 +39,26 @@ async function finalizeOptimizerIfDone(optimizerRunId: string): Promise<void> {
     .eq("optimizer_run_id", optimizerRunId);
 
   type ChildRow = {
-    id: string; status: string; config: unknown; summary: unknown; error: string | null;
+    id: string;
+    status: string;
+    config: unknown;
+    summary: unknown;
+    error: string | null;
   };
-  const results = (children as ChildRow[] | null ?? []).map((c) => {
+  const results = ((children as ChildRow[] | null) ?? []).map((c) => {
     if (c.status !== "completed") {
-      return { backtest_run_id: c.id, config: c.config, summary: c.summary, score: null, eligible: false, error: c.error };
+      return {
+        backtest_run_id: c.id,
+        config: c.config,
+        summary: c.summary,
+        score: null,
+        eligible: false,
+        error: c.error,
+      };
     }
-    const { score, eligible } = scoreBacktestSummary(c.summary as { total_trades?: number; total_pnl_pct?: number; max_drawdown_pct?: number });
+    const { score, eligible } = scoreBacktestSummary(
+      c.summary as { total_trades?: number; total_pnl_pct?: number; max_drawdown_pct?: number },
+    );
     return { backtest_run_id: c.id, config: c.config, summary: c.summary, score, eligible };
   });
 
@@ -69,7 +82,6 @@ async function finalizeOptimizerIfDone(optimizerRunId: string): Promise<void> {
     .eq("id", optimizerRunId);
 }
 
-
 export const Route = createFileRoute("/api/public/hooks/run-backtests")({
   server: {
     handlers: {
@@ -78,7 +90,8 @@ export const Route = createFileRoute("/api/public/hooks/run-backtests")({
         const provided = request.headers.get("x-cron-secret") ?? "";
         if (!expected || !provided || !safeEqual(provided, expected)) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
-            status: 401, headers: { "Content-Type": "application/json" },
+            status: 401,
+            headers: { "Content-Type": "application/json" },
           });
         }
 
@@ -126,7 +139,9 @@ export const Route = createFileRoute("/api/public/hooks/run-backtests")({
           // Pull historical signals for this user/period.
           let q = supabaseAdmin
             .from("signals")
-            .select("id, symbol, side, entry_price, stop_loss, take_profit, leverage, created_at, source_id")
+            .select(
+              "id, symbol, side, entry_price, stop_loss, take_profit, leverage, created_at, source_id",
+            )
             .gte("created_at", run.start_date)
             .lte("created_at", run.end_date)
             .eq("status", "parsed")
@@ -136,7 +151,10 @@ export const Route = createFileRoute("/api/public/hooks/run-backtests")({
             q = q.in("source_id", run.config.channel_ids);
           }
           if (run.config.symbols?.length) {
-            q = q.in("symbol", run.config.symbols.map((s) => s.toUpperCase()));
+            q = q.in(
+              "symbol",
+              run.config.symbols.map((s) => s.toUpperCase()),
+            );
           }
 
           const { data: rawSignals, error: sigErr } = await q.limit(5000);
@@ -151,7 +169,9 @@ export const Route = createFileRoute("/api/public/hooks/run-backtests")({
               entry: Number(r.entry_price),
               stopLoss: r.stop_loss != null ? Number(r.stop_loss) : null,
               takeProfit: Array.isArray(r.take_profit)
-                ? (r.take_profit as unknown[]).map((x) => Number(x)).filter((x) => Number.isFinite(x))
+                ? (r.take_profit as unknown[])
+                    .map((x) => Number(x))
+                    .filter((x) => Number.isFinite(x))
                 : [],
               leverage: r.leverage != null ? Number(r.leverage) : null,
               ts: new Date(r.created_at as string).getTime(),

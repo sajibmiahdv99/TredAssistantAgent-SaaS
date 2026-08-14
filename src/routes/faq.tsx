@@ -98,9 +98,8 @@ function Page() {
             Frequently asked <span className="text-primary">questions</span>.
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground">
-            Everything you need to know about Hermes — from signal parsing and
-            API key security to subscriptions, backtesting, and the affiliate
-            program.
+            Everything you need to know about Hermes — from signal parsing and API key security to
+            subscriptions, backtesting, and the affiliate program.
           </p>
         </div>
       </section>
@@ -129,20 +128,14 @@ function Page() {
       <section className="mx-auto max-w-4xl px-6 pb-24">
         <div className="rounded-2xl border border-border bg-card p-8 text-center">
           <Search className="mx-auto h-6 w-6 text-primary" />
-          <h2 className="mt-3 text-2xl font-semibold tracking-tight">
-            Still have questions?
-          </h2>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight">Still have questions?</h2>
           <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-            Reach out to our support team and we'll get back to you within a few
-            hours — usually faster.
+            Reach out to our support team and we'll get back to you within a few hours — usually
+            faster.
           </p>
           <div className="mt-6 flex justify-center gap-3">
             <Button asChild variant="outline">
-              <a
-                href="mailto:support@hermesagent.com"
-              >
-                Email support
-              </a>
+              <a href="mailto:support@hermesagent.com">Email support</a>
             </Button>
             <Button asChild>
               <Link to="/auth" search={{ mode: "signup" } as never}>

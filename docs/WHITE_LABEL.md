@@ -19,13 +19,13 @@ byte-for-byte:
 
 Environment variables (all optional; defaults in parentheses):
 
-| Variable                    | Default                     |
-| --------------------------- | --------------------------- |
-| `VITE_BRAND_NAME`           | `Hermes`                    |
-| `VITE_BRAND_TAGLINE`        | `Workstation`               |
-| `VITE_BRAND_LOGO_INITIAL`   | `H`                         |
-| `VITE_BRAND_ADMIN_INITIAL`  | `A`                         |
-| `VITE_BRAND_FOOTER_NAME`    | `Hermes Agent Workstation`  |
+| Variable                   | Default                    |
+| -------------------------- | -------------------------- |
+| `VITE_BRAND_NAME`          | `Hermes`                   |
+| `VITE_BRAND_TAGLINE`       | `Workstation`              |
+| `VITE_BRAND_LOGO_INITIAL`  | `H`                        |
+| `VITE_BRAND_ADMIN_INITIAL` | `A`                        |
+| `VITE_BRAND_FOOTER_NAME`   | `Hermes Agent Workstation` |
 
 Setting none of these leaves the app pixel-for-pixel identical to today.
 

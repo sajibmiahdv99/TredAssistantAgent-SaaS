@@ -3,7 +3,7 @@
 // For multi-instance deployments, swap this for a Redis-backed limiter.
 
 export interface RateLimitConfig {
-  windowMs: number;   // sliding window in ms (default: 60_000 = 1 minute)
+  windowMs: number; // sliding window in ms (default: 60_000 = 1 minute)
   maxRequests: number; // max requests per window (default: 30)
 }
 
@@ -69,10 +69,7 @@ export function checkRateLimit(
   };
 }
 
-export function rateLimitMiddleware(
-  request: Request,
-  config?: RateLimitConfig,
-): Response | null {
+export function rateLimitMiddleware(request: Request, config?: RateLimitConfig): Response | null {
   // Use IP from headers (Cloudflare/X-Forwarded-For) or a default
   const ip =
     request.headers.get("cf-connecting-ip") ??
@@ -91,10 +88,13 @@ export function rateLimitMiddleware(
 
   if (!result.allowed) {
     headers.set("Retry-After", String(Math.ceil((result.retryAfterMs ?? 60_000) / 1000)));
-    return new Response(JSON.stringify({ error: "rate limit exceeded", retryAfterMs: result.retryAfterMs }), {
-      status: 429,
-      headers,
-    });
+    return new Response(
+      JSON.stringify({ error: "rate limit exceeded", retryAfterMs: result.retryAfterMs }),
+      {
+        status: 429,
+        headers,
+      },
+    );
   }
 
   return null; // no rate limit hit — continue

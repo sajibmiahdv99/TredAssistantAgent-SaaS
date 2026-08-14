@@ -43,17 +43,21 @@ function Page() {
   const [form, setForm] = useState({ full_name: "", timezone: "", locale: "", avatar_url: "" });
 
   useEffect(() => {
-    if (data) setForm({
-      full_name: data.full_name ?? "",
-      timezone: data.timezone ?? "",
-      locale: data.locale ?? "",
-      avatar_url: data.avatar_url ?? "",
-    });
+    if (data)
+      setForm({
+        full_name: data.full_name ?? "",
+        timezone: data.timezone ?? "",
+        locale: data.locale ?? "",
+        avatar_url: data.avatar_url ?? "",
+      });
   }, [data]);
 
   const m = useMutation({
     mutationFn: () => updateFn({ data: form }),
-    onSuccess: () => { toast.success("Profile updated"); qc.invalidateQueries({ queryKey: ["my-profile"] }); },
+    onSuccess: () => {
+      toast.success("Profile updated");
+      qc.invalidateQueries({ queryKey: ["my-profile"] });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -70,14 +74,46 @@ function Page() {
       <PageHeader title="Profile" subtitle="Personal info and account preferences." />
       <Card>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2"><Label>Email</Label><Input readOnly value={data?.email ?? ""} /></div>
-          <div><Label>Full name</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
-          <div><Label>Avatar URL</Label><Input value={form.avatar_url} onChange={(e) => setForm({ ...form, avatar_url: e.target.value })} placeholder="https://..." /></div>
-          <div><Label>Timezone</Label><Input value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} placeholder="UTC" /></div>
-          <div><Label>Locale</Label><Input value={form.locale} onChange={(e) => setForm({ ...form, locale: e.target.value })} placeholder="en" /></div>
+          <div className="sm:col-span-2">
+            <Label>Email</Label>
+            <Input readOnly value={data?.email ?? ""} />
+          </div>
+          <div>
+            <Label>Full name</Label>
+            <Input
+              value={form.full_name}
+              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Avatar URL</Label>
+            <Input
+              value={form.avatar_url}
+              onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
+              placeholder="https://..."
+            />
+          </div>
+          <div>
+            <Label>Timezone</Label>
+            <Input
+              value={form.timezone}
+              onChange={(e) => setForm({ ...form, timezone: e.target.value })}
+              placeholder="UTC"
+            />
+          </div>
+          <div>
+            <Label>Locale</Label>
+            <Input
+              value={form.locale}
+              onChange={(e) => setForm({ ...form, locale: e.target.value })}
+              placeholder="en"
+            />
+          </div>
         </div>
         <div className="mt-5 flex justify-end">
-          <Button onClick={() => m.mutate()} disabled={m.isPending}>{m.isPending ? "Saving..." : "Save"}</Button>
+          <Button onClick={() => m.mutate()} disabled={m.isPending}>
+            {m.isPending ? "Saving..." : "Save"}
+          </Button>
         </div>
       </Card>
       <div className="mt-6">
@@ -109,4 +145,3 @@ function Page() {
     </>
   );
 }
-

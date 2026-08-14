@@ -162,8 +162,8 @@ function Page() {
             Privacy <span className="text-primary">Policy</span>.
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground">
-            We take your privacy seriously. This policy explains what data we
-            collect, how we use it, and the controls you have over it.
+            We take your privacy seriously. This policy explains what data we collect, how we use
+            it, and the controls you have over it.
           </p>
         </div>
       </section>
@@ -174,19 +174,17 @@ function Page() {
           {sections.map((section) => {
             const Icon = section.icon;
             return (
-              <div
-                key={section.title}
-                className="rounded-xl border border-border bg-card p-6"
-              >
+              <div key={section.title} className="rounded-xl border border-border bg-card p-6">
                 <div className="flex items-center gap-3">
                   <Icon className="h-5 w-5 text-primary" />
-                  <h2 className="text-xl font-semibold tracking-tight">
-                    {section.title}
-                  </h2>
+                  <h2 className="text-xl font-semibold tracking-tight">{section.title}</h2>
                 </div>
                 <ul className="mt-4 space-y-3">
                   {section.content.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 text-sm leading-relaxed text-muted-foreground"
+                    >
                       <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/50" />
                       <span>{item}</span>
                     </li>

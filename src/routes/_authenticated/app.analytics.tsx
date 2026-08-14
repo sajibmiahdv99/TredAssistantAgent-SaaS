@@ -17,7 +17,11 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: "po
   return (
     <Card>
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={`mt-2 text-2xl font-semibold ${tone === "pos" ? "text-emerald-400" : tone === "neg" ? "text-red-400" : ""}`}>{value}</p>
+      <p
+        className={`mt-2 text-2xl font-semibold ${tone === "pos" ? "text-emerald-400" : tone === "neg" ? "text-red-400" : ""}`}
+      >
+        {value}
+      </p>
     </Card>
   );
 }

@@ -101,14 +101,10 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey) {
-      throw new Error(
-        "Stripe payments are not configured yet. Please check back later.",
-      );
+      throw new Error("Stripe payments are not configured yet. Please check back later.");
     }
 
-    const { createCheckoutSession, createOrRetrieveCustomer } = await import(
-      "@/lib/stripe.server"
-    );
+    const { createCheckoutSession, createOrRetrieveCustomer } = await import("@/lib/stripe.server");
 
     // Get the user's email from their profile
     const { data: profile } = await context.supabase
@@ -151,14 +147,10 @@ export const getBillingPortalUrl = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey) {
-      throw new Error(
-        "Stripe billing portal is not configured yet. Please check back later.",
-      );
+      throw new Error("Stripe billing portal is not configured yet. Please check back later.");
     }
 
-    const { createBillingPortalSession } = await import(
-      "@/lib/stripe.server"
-    );
+    const { createBillingPortalSession } = await import("@/lib/stripe.server");
 
     // Find the user's active subscription with a Stripe external reference
     const { data: sub } = await context.supabase
@@ -193,20 +185,15 @@ export const getBillingPortalUrl = createServerFn({ method: "POST" })
 
 // ─── Internal helper ─────────────────────────────────────────────────────────
 
-async function fetchStripeSubscription(
-  subId: string,
-): Promise<{ customer: string }> {
+async function fetchStripeSubscription(subId: string): Promise<{ customer: string }> {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("STRIPE_SECRET_KEY is not set");
 
-  const res = await fetch(
-    `https://api.stripe.com/v1/subscriptions/${subId}`,
-    {
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${key}:`).toString("base64")}`,
-      },
+  const res = await fetch(`https://api.stripe.com/v1/subscriptions/${subId}`, {
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${key}:`).toString("base64")}`,
     },
-  );
+  });
   if (!res.ok) {
     const err = await res.text().catch(() => "unknown error");
     throw new Error(`Stripe API ${res.status}: ${err}`);

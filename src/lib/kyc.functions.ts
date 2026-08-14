@@ -50,7 +50,11 @@ async function assertAdmin(sb: SupabaseClient<Database>, userId: string) {
  * Writes go through the service-role client because INSERT/UPDATE on
  * kyc_verifications are service-role only under RLS.
  */
-async function upsertPendingKyc(sb: SupabaseClient<Database>, userId: string, meta: KycDocumentMetadata) {
+async function upsertPendingKyc(
+  sb: SupabaseClient<Database>,
+  userId: string,
+  meta: KycDocumentMetadata,
+) {
   const { data: existing, error: readError } = await sb
     .from("kyc_verifications")
     .select("status")
@@ -180,8 +184,15 @@ export const adminReviewKyc = createServerFn({ method: "POST" })
     const update =
       data.action === "approve"
         ? { status: "verified", verified_at: new Date().toISOString(), rejected_reason: null }
-        : { status: "rejected", verified_at: null, rejected_reason: data.rejected_reason ?? "Not approved" };
-    const { error } = await supabaseAdmin.from("kyc_verifications").update(update).eq("id", data.id);
+        : {
+            status: "rejected",
+            verified_at: null,
+            rejected_reason: data.rejected_reason ?? "Not approved",
+          };
+    const { error } = await supabaseAdmin
+      .from("kyc_verifications")
+      .update(update)
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -208,7 +219,9 @@ export const listKycSubmissions = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let query = supabaseAdmin
       .from("kyc_verifications")
-      .select("id,user_id,provider,status,external_reference_id,submitted_at,verified_at,rejected_reason,created_at,updated_at")
+      .select(
+        "id,user_id,provider,status,external_reference_id,submitted_at,verified_at,rejected_reason,created_at,updated_at",
+      )
       .order("submitted_at", { ascending: false })
       .limit(data.limit ?? 200);
     if (data.status) query = query.eq("status", data.status);

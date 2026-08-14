@@ -20,14 +20,12 @@ export interface ParsedSignal {
 
 export const PARSER_VERSION = "ts-1.0.0";
 
-const SYMBOL_RE =
-  /\b([A-Z]{2,10})[\/\-]?(USDT|USD|USDC|BUSD|BTC|ETH|EUR|GBP|JPY)\b/i;
+const SYMBOL_RE = /\b([A-Z]{2,10})[/-]?(USDT|USD|USDC|BUSD|BTC|ETH|EUR|GBP|JPY)\b/i;
 
 const SIDE_LONG = /\b(long|buy|bull|bullish)\b/i;
 const SIDE_SHORT = /\b(short|sell|bear|bearish)\b/i;
 
-const ENTRY_RE =
-  /\b(entry|enter|buy\s*@|sell\s*@|open|@)\s*[:=]?\s*([\d]+(?:[.,]\d+)?)/i;
+const ENTRY_RE = /\b(entry|enter|buy\s*@|sell\s*@|open|@)\s*[:=]?\s*([\d]+(?:[.,]\d+)?)/i;
 
 const SL_RE = /\b(sl|stop[-\s]?loss|stop)\s*[:=@]?\s*([\d]+(?:[.,]\d+)?)/i;
 

@@ -30,11 +30,13 @@ its own orders.
 Both endpoints are TanStack server functions; call them as RPC over HTTPS.
 
 ### `claimQueuedOrders({ limit })`
+
 - Returns up to `limit` orders with `status='queued'`.
 - Server flips them to `status='dispatched'` atomically so a second poll
   does not re-deliver them.
 
 ### `reportExecution({ orderId, status, fillPrice?, filledQuantity?, pnl?, exchangeOrderId?, errorMessage? })`
+
 - `status`: one of `filled | partial | open | cancelled | rejected | closed`.
 - Worker calls this after the broker confirms, and again on position close
   with the final PnL.

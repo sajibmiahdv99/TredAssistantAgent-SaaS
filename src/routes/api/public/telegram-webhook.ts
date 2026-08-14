@@ -29,7 +29,11 @@ export const Route = createFileRoute("/api/public/telegram-webhook")({
           return new Response("unauthorized", { status: 401 });
         }
 
-        let update: any;
+        let update: {
+          message?: { text?: string; caption?: string; chat?: { id?: string | number } };
+          channel_post?: { text?: string; caption?: string; chat?: { id?: string | number } };
+          edited_message?: { text?: string; caption?: string; chat?: { id?: string | number } };
+        };
         try {
           update = await request.json();
         } catch {

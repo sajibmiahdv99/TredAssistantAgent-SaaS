@@ -53,9 +53,7 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
                 current_period_end: number;
                 customer: string;
               };
-              const { supabaseAdmin } = await import(
-                "@/integrations/supabase/client.server"
-              );
+              const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
               const newStatus =
                 event.type === "customer.subscription.deleted"
@@ -82,12 +80,8 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               if (ours) {
                 const updateFields: Record<string, unknown> = {
                   status: newStatus,
-                  current_period_starts_at: new Date(
-                    sub.current_period_start * 1000,
-                  ).toISOString(),
-                  current_period_ends_at: new Date(
-                    sub.current_period_end * 1000,
-                  ).toISOString(),
+                  current_period_starts_at: new Date(sub.current_period_start * 1000).toISOString(),
+                  current_period_ends_at: new Date(sub.current_period_end * 1000).toISOString(),
                 };
                 if (event.type === "customer.subscription.deleted") {
                   updateFields.auto_renew = false;

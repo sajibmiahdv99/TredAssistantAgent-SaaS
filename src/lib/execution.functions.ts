@@ -49,7 +49,6 @@ export const claimQueuedOrders = createServerFn({ method: "POST" })
       );
     }
 
-
     // Pending modify/cancel — surface to worker without flipping status yet.
     const { data: pendingMods } = await context.supabase
       .from("orders")
@@ -101,14 +100,16 @@ export const reportExecution = createServerFn({ method: "POST" })
 
     // Optimistic lock (optional)
     if (data.expectedVersion != null && data.expectedVersion !== current.version) {
-      throw new Error(`version conflict: expected ${data.expectedVersion}, current ${current.version}`);
+      throw new Error(
+        `version conflict: expected ${data.expectedVersion}, current ${current.version}`,
+      );
     }
 
     // Accumulate filled_quantity for partial fills.
     const accumulatedQty =
       data.filledQuantity != null && (data.status === "partial" || data.status === "filled")
         ? Number(current.filled_quantity ?? 0) + Number(data.filledQuantity)
-        : data.filledQuantity ?? current.filled_quantity ?? null;
+        : (data.filledQuantity ?? current.filled_quantity ?? null);
 
     type OrderUpdate = {
       status: typeof data.status;
@@ -140,7 +141,6 @@ export const reportExecution = createServerFn({ method: "POST" })
       .eq("id", data.orderId)
       .eq("user_id", context.userId);
     if (upErr) throw new Error(upErr.message);
-
 
     await context.supabase.from("order_events").insert({
       order_id: data.orderId,
@@ -249,14 +249,17 @@ export const modifyOrder = createServerFn({ method: "POST" })
       .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
 
-
     await context.supabase.from("order_events").insert({
       order_id: data.orderId,
       user_id: context.userId,
       event_type: "user_modify_requested",
       from_status: null,
       to_status: null,
-      payload: { stop_loss: data.stop_loss, take_profit: data.take_profit, quantity: data.quantity },
+      payload: {
+        stop_loss: data.stop_loss,
+        take_profit: data.take_profit,
+        quantity: data.quantity,
+      },
     });
     return { ok: true };
   });
@@ -285,7 +288,6 @@ export const setTrailingStop = createServerFn({ method: "POST" })
       .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
 
-
     await context.supabase.from("order_events").insert({
       order_id: data.orderId,
       user_id: context.userId,
@@ -310,10 +312,9 @@ export const setPartialTakeProfits = createServerFn({ method: "POST" })
           .min(1)
           .max(6),
       })
-      .refine(
-        (v) => Math.round(v.levels.reduce((s, l) => s + l.percent, 0)) === 100,
-        { message: "Percentages must sum to 100" },
-      )
+      .refine((v) => Math.round(v.levels.reduce((s, l) => s + l.percent, 0)) === 100, {
+        message: "Percentages must sum to 100",
+      })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -330,7 +331,6 @@ export const setPartialTakeProfits = createServerFn({ method: "POST" })
       .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
 
-
     await context.supabase.from("order_events").insert({
       order_id: data.orderId,
       user_id: context.userId,
@@ -341,7 +341,6 @@ export const setPartialTakeProfits = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
-
 
 export const listOrderEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

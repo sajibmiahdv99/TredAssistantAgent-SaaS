@@ -1,14 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  Link2,
-  Users,
-  Wallet,
-  ArrowRight,
-  Gift,
-  RefreshCw,
-  BadgeCheck,
-  Clock,
-} from "lucide-react";
+import { Link2, Users, Wallet, ArrowRight, Gift, RefreshCw, BadgeCheck, Clock } from "lucide-react";
 import { PublicNav, PublicFooter } from "@/components/PublicNav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -119,9 +110,9 @@ function Page() {
             Turn your audience into <span className="text-primary">monthly income</span>.
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground">
-            Every trader needs risk management. Share Hermes with your audience
-            and earn 30% / 10% / 5% recurring commissions across three levels —
-            paid monthly, for as long as your referrals stay subscribed.
+            Every trader needs risk management. Share Hermes with your audience and earn 30% / 10% /
+            5% recurring commissions across three levels — paid monthly, for as long as your
+            referrals stay subscribed.
           </p>
           <div className="mt-8 flex justify-center gap-3">
             <Button asChild>
@@ -142,12 +133,10 @@ function Page() {
       {/* Commission tiers */}
       <section className="mx-auto max-w-5xl px-6 pb-20">
         <div className="text-center">
-          <h2 className="text-3xl font-semibold tracking-tight">
-            Three levels of commissions
-          </h2>
+          <h2 className="text-3xl font-semibold tracking-tight">Three levels of commissions</h2>
           <p className="mt-3 text-muted-foreground">
-            Earn on direct referrals and on the referrals your network brings in
-            — up to three levels deep.
+            Earn on direct referrals and on the referrals your network brings in — up to three
+            levels deep.
           </p>
         </div>
         <div className="mt-10 grid gap-6 md:grid-cols-3">
@@ -191,10 +180,7 @@ function Page() {
         </div>
         <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {steps.map((step) => (
-            <div
-              key={step.n}
-              className="rounded-2xl border border-border bg-card p-8"
-            >
+            <div key={step.n} className="rounded-2xl border border-border bg-card p-8">
               <div className="text-xs font-semibold tracking-widest text-primary">
                 STEP {step.n}
               </div>
@@ -208,9 +194,7 @@ function Page() {
       {/* Benefits */}
       <section className="mx-auto max-w-7xl px-6 pb-20">
         <div className="text-center">
-          <h2 className="text-3xl font-semibold tracking-tight">
-            Why affiliates love Hermes
-          </h2>
+          <h2 className="text-3xl font-semibold tracking-tight">Why affiliates love Hermes</h2>
         </div>
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {benefits.map((b) => {
@@ -234,9 +218,7 @@ function Page() {
         <div className="rounded-2xl border border-border bg-card p-8">
           <div className="flex items-center gap-3">
             <Wallet className="h-6 w-6 text-primary" />
-            <h2 className="text-2xl font-semibold tracking-tight">
-              Payout details
-            </h2>
+            <h2 className="text-2xl font-semibold tracking-tight">Payout details</h2>
           </div>
           <div className="mt-6 grid gap-6 sm:grid-cols-2">
             <div>
@@ -244,8 +226,8 @@ function Page() {
                 Schedule
               </h3>
               <p className="mt-2 text-sm text-foreground/90">
-                Commissions accrue daily and are settled at the end of each
-                calendar month. Payouts are processed within 15 days.
+                Commissions accrue daily and are settled at the end of each calendar month. Payouts
+                are processed within 15 days.
               </p>
             </div>
             <div>
@@ -253,8 +235,8 @@ function Page() {
                 Methods
               </h3>
               <p className="mt-2 text-sm text-foreground/90">
-                USDT (TRC-20 or ERC-20) or bank transfer (SWIFT / SEPA). You
-                choose your preferred method in the affiliate dashboard.
+                USDT (TRC-20 or ERC-20) or bank transfer (SWIFT / SEPA). You choose your preferred
+                method in the affiliate dashboard.
               </p>
             </div>
             <div>
@@ -262,8 +244,7 @@ function Page() {
                 Minimum payout
               </h3>
               <p className="mt-2 text-sm text-foreground/90">
-                $50. Balances below the threshold roll over to the next month
-                automatically.
+                $50. Balances below the threshold roll over to the next month automatically.
               </p>
             </div>
             <div>
@@ -271,8 +252,8 @@ function Page() {
                 Attribution window
               </h3>
               <p className="mt-2 text-sm text-foreground/90">
-                90-day cookie-based attribution. If a click later converts to a
-                subscription, you still earn the commission.
+                90-day cookie-based attribution. If a click later converts to a subscription, you
+                still earn the commission.
               </p>
             </div>
           </div>
@@ -287,8 +268,8 @@ function Page() {
             Start earning on your network today.
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-            Join free, grab your link, and start building recurring income.
-            It takes less than a minute to get started.
+            Join free, grab your link, and start building recurring income. It takes less than a
+            minute to get started.
           </p>
           <div className="mt-6 flex justify-center gap-3">
             <Button asChild>

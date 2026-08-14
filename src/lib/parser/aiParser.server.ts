@@ -59,7 +59,10 @@ export async function parseSignalAI(
 
   try {
     const userContent: Array<Record<string, unknown>> = [
-      { type: "text", text: rawText.slice(0, 4000) || "(image only — parse the signal from the screenshot)" },
+      {
+        type: "text",
+        text: rawText.slice(0, 4000) || "(image only — parse the signal from the screenshot)",
+      },
     ];
     if (imageUrl) {
       userContent.push({ type: "image_url", image_url: { url: imageUrl } });

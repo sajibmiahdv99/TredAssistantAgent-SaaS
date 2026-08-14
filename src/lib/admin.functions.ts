@@ -19,9 +19,18 @@ export const adminOverview = createServerFn({ method: "GET" })
     const [users, activeSubs, openOrders, openTickets, signals24h] = await Promise.all([
       sb.from("profiles").select("id", { count: "exact", head: true }),
       sb.from("subscriptions").select("id", { count: "exact", head: true }).eq("status", "active"),
-      sb.from("orders").select("id", { count: "exact", head: true }).in("status", ["pending", "open", "partial", "submitted"]),
-      sb.from("support_tickets").select("id", { count: "exact", head: true }).neq("status", "closed"),
-      sb.from("signals").select("id", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 86400000).toISOString()),
+      sb
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["pending", "open", "partial", "submitted"]),
+      sb
+        .from("support_tickets")
+        .select("id", { count: "exact", head: true })
+        .neq("status", "closed"),
+      sb
+        .from("signals")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", new Date(Date.now() - 86400000).toISOString()),
     ]);
     return {
       users: users.count ?? 0,
@@ -60,7 +69,10 @@ export const adminSetUserActive = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ user_id: z.string().uuid(), is_active: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const { error } = await context.supabase.from("profiles").update({ is_active: data.is_active }).eq("id", data.user_id);
+    const { error } = await context.supabase
+      .from("profiles")
+      .update({ is_active: data.is_active })
+      .eq("id", data.user_id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -68,20 +80,28 @@ export const adminSetUserActive = createServerFn({ method: "POST" })
 export const adminGrantRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({
-      user_id: z.string().uuid(),
-      role: z.enum(["admin", "moderator", "user"]),
-      grant: z.boolean(),
-    }).parse(d),
+    z
+      .object({
+        user_id: z.string().uuid(),
+        role: z.enum(["admin", "moderator", "user"]),
+        grant: z.boolean(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const sb = context.supabase;
     if (data.grant) {
-      const { error } = await sb.from("user_roles").insert({ user_id: data.user_id, role: data.role });
+      const { error } = await sb
+        .from("user_roles")
+        .insert({ user_id: data.user_id, role: data.role });
       if (error && !error.message.includes("duplicate")) throw new Error(error.message);
     } else {
-      const { error } = await sb.from("user_roles").delete().eq("user_id", data.user_id).eq("role", data.role);
+      const { error } = await sb
+        .from("user_roles")
+        .delete()
+        .eq("user_id", data.user_id)
+        .eq("role", data.role);
       if (error) throw new Error(error.message);
     }
     return { ok: true };
@@ -94,7 +114,9 @@ export const adminListSubscriptions = createServerFn({ method: "GET" })
     await assertAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("subscriptions")
-      .select("id,user_id,plan_code,status,billing_interval,current_period_starts_at,current_period_ends_at,auto_renew,created_at")
+      .select(
+        "id,user_id,plan_code,status,billing_interval,current_period_starts_at,current_period_ends_at,auto_renew,created_at",
+      )
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
@@ -131,16 +153,18 @@ export const adminListSources = createServerFn({ method: "GET" })
 export const adminUpsertSource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({
-      id: z.string().uuid().optional(),
-      code: z.string().min(1).max(64),
-      name: z.string().min(1).max(120),
-      description: z.string().max(1000).optional().nullable(),
-      source_type: z.string().min(1).max(32),
-      status: z.enum(["active", "paused", "disabled"]).default("active"),
-      is_platform_managed: z.boolean().default(false),
-      win_rate: z.number().min(0).max(100).optional().nullable(),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        code: z.string().min(1).max(64),
+        name: z.string().min(1).max(120),
+        description: z.string().max(1000).optional().nullable(),
+        source_type: z.string().min(1).max(32),
+        status: z.enum(["active", "paused", "disabled"]).default("active"),
+        is_platform_managed: z.boolean().default(false),
+        win_rate: z.number().min(0).max(100).optional().nullable(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
@@ -162,7 +186,9 @@ export const adminListSignals = createServerFn({ method: "GET" })
     await assertAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("signals")
-      .select("id,symbol,side,entry_price,stop_loss,take_profit,leverage,confidence,status,error,parser_version,created_at,source_id")
+      .select(
+        "id,symbol,side,entry_price,stop_loss,take_profit,leverage,confidence,status,error,parser_version,created_at,source_id",
+      )
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
@@ -212,7 +238,9 @@ export const adminListTrades = createServerFn({ method: "GET" })
     await assertAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("orders")
-      .select("id,user_id,symbol,side,order_type,price,quantity,fill_price,leverage,status,pnl,created_at")
+      .select(
+        "id,user_id,symbol,side,order_type,price,quantity,fill_price,leverage,status,pnl,created_at",
+      )
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
@@ -224,10 +252,7 @@ export const adminListPlans = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const { data, error } = await context.supabase
-      .from("plans")
-      .select("*")
-      .order("sort_order");
+    const { data, error } = await context.supabase.from("plans").select("*").order("sort_order");
     if (error) throw new Error(error.message);
     return data ?? [];
   });
@@ -235,19 +260,21 @@ export const adminListPlans = createServerFn({ method: "GET" })
 export const adminUpsertPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({
-      id: z.string().uuid().optional(),
-      code: z.string().min(1).max(32),
-      name: z.string().min(1).max(64),
-      description: z.string().max(500).optional().nullable(),
-      monthly_price: z.number().min(0).max(100000).optional().nullable(),
-      yearly_price: z.number().min(0).max(1000000).optional().nullable(),
-      max_open_positions: z.number().int().min(0).max(1000).optional().nullable(),
-      max_daily_trades: z.number().int().min(0).max(10000).optional().nullable(),
-      max_trade_size_percentage: z.number().min(0).max(100).optional().nullable(),
-      is_active: z.boolean().default(true),
-      sort_order: z.number().int().min(0).max(1000).default(0),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        code: z.string().min(1).max(32),
+        name: z.string().min(1).max(64),
+        description: z.string().max(500).optional().nullable(),
+        monthly_price: z.number().min(0).max(100000).optional().nullable(),
+        yearly_price: z.number().min(0).max(1000000).optional().nullable(),
+        max_open_positions: z.number().int().min(0).max(1000).optional().nullable(),
+        max_daily_trades: z.number().int().min(0).max(10000).optional().nullable(),
+        max_trade_size_percentage: z.number().min(0).max(100).optional().nullable(),
+        is_active: z.boolean().default(true),
+        sort_order: z.number().int().min(0).max(1000).default(0),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
@@ -269,7 +296,9 @@ export const adminListAffiliates = createServerFn({ method: "GET" })
     await assertAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("affiliates")
-      .select("id,user_id,referral_code,rank,is_approved,direct_referrals,total_earned,total_paid,total_pending,created_at")
+      .select(
+        "id,user_id,referral_code,rank,is_approved,direct_referrals,total_earned,total_paid,total_pending,created_at",
+      )
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
@@ -288,7 +317,6 @@ export const adminApproveAffiliate = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
-
   });
 
 // ============ Payouts ============
@@ -308,11 +336,13 @@ export const adminListPayouts = createServerFn({ method: "GET" })
 export const adminProcessPayout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({
-      id: z.string().uuid(),
-      status: z.enum(["approved", "paid", "rejected"]),
-      notes: z.string().max(500).optional(),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid(),
+        status: z.enum(["approved", "paid", "rejected"]),
+        notes: z.string().max(500).optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
@@ -345,16 +375,22 @@ export const adminListTickets = createServerFn({ method: "GET" })
 export const adminUpdateTicket = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({
-      id: z.string().uuid(),
-      status: z.enum(["open", "in_progress", "waiting_user", "resolved", "closed"]),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid(),
+        status: z.enum(["open", "in_progress", "waiting_user", "resolved", "closed"]),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const update: { status: string; resolved_at?: string | null } = { status: data.status };
-    if (data.status === "resolved" || data.status === "closed") update.resolved_at = new Date().toISOString();
-    const { error } = await context.supabase.from("support_tickets").update(update).eq("id", data.id);
+    if (data.status === "resolved" || data.status === "closed")
+      update.resolved_at = new Date().toISOString();
+    const { error } = await context.supabase
+      .from("support_tickets")
+      .update(update)
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -392,14 +428,17 @@ export const adminGetSystemStats = createServerFn({ method: "GET" })
 export const adminMonitoring = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      status: z.string().optional(),
-      userQuery: z.string().optional(),
-      reasonQuery: z.string().optional(),
-      from: z.string().datetime().optional(),
-      to: z.string().datetime().optional(),
-      limit: z.number().int().min(1).max(2000).optional(),
-    }).partial().parse(d ?? {}),
+    z
+      .object({
+        status: z.string().optional(),
+        userQuery: z.string().optional(),
+        reasonQuery: z.string().optional(),
+        from: z.string().datetime().optional(),
+        to: z.string().datetime().optional(),
+        limit: z.number().int().min(1).max(2000).optional(),
+      })
+      .partial()
+      .parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
@@ -412,14 +451,7 @@ export const adminMonitoring = createServerFn({ method: "GET" })
     const since1h = new Date(Date.now() - 3600000).toISOString();
 
     // 1) Queue status counts (active + terminal in last 24h)
-    const QUEUE_STATUSES = [
-      "PENDING",
-      "OPEN",
-      "FILLED",
-      "CANCELLED",
-      "FAILED",
-      "CLOSED",
-    ] as const;
+    const QUEUE_STATUSES = ["PENDING", "OPEN", "FILLED", "CANCELLED", "FAILED", "CLOSED"] as const;
     const counts = await Promise.all(
       QUEUE_STATUSES.map(async (s) => {
         const { count } = await sb
@@ -456,16 +488,13 @@ export const adminMonitoring = createServerFn({ method: "GET" })
     if (recent.error) throw new Error(recent.error.message);
 
     // Hydrate user profiles, then optionally apply userQuery filter (email/name)
-    const userIds = Array.from(
-      new Set((recent.data ?? []).map((o) => o.user_id).filter(Boolean)),
-    );
-    const { supabaseAdmin: sbAdminForProfiles } = await import("@/integrations/supabase/client.server");
+    const userIds = Array.from(new Set((recent.data ?? []).map((o) => o.user_id).filter(Boolean)));
+    const { supabaseAdmin: sbAdminForProfiles } =
+      await import("@/integrations/supabase/client.server");
     const profilesRes = userIds.length
       ? await sbAdminForProfiles.from("profiles").select("id,email,full_name").in("id", userIds)
       : { data: [] as Array<{ id: string; email: string; full_name: string }> };
-    const profileMap = new Map(
-      (profilesRes.data ?? []).map((p) => [p.id, p]),
-    );
+    const profileMap = new Map((profilesRes.data ?? []).map((p) => [p.id, p]));
     const userQ = filters.userQuery?.trim().toLowerCase();
     const recentFiltered = (recent.data ?? []).filter((o) => {
       if (!userQ) return true;
@@ -506,8 +535,7 @@ export const adminMonitoring = createServerFn({ method: "GET" })
     for (const l of logs.data ?? []) {
       if (!l.order_id) continue;
       const a = (l.action ?? "").toLowerCase();
-      const isAttempt =
-        a.includes("retry") || a.includes("rejected") || a.startsWith("execution_");
+      const isAttempt = a.includes("retry") || a.includes("rejected") || a.startsWith("execution_");
       if (!isAttempt) continue;
       const prev = retryMap.get(l.order_id) ?? { attempts: 0, last: l.created_at };
       prev.attempts += 1;
@@ -523,15 +551,27 @@ export const adminMonitoring = createServerFn({ method: "GET" })
     // Hydrate retry orders with symbol/status for display
     const retryIds = retryEntries.map((r) => r.orderId);
     const retryOrders = retryIds.length
-      ? await sb
-          .from("orders")
-          .select("id,symbol,side,status,user_id")
-          .in("id", retryIds)
-      : { data: [] as Array<{ id: string; symbol: string; side: string; status: string; user_id: string }> };
+      ? await sb.from("orders").select("id,symbol,side,status,user_id").in("id", retryIds)
+      : {
+          data: [] as Array<{
+            id: string;
+            symbol: string;
+            side: string;
+            status: string;
+            user_id: string;
+          }>,
+        };
     const retryOrderMap = new Map((retryOrders.data ?? []).map((o) => [o.id, o]));
 
     return {
-      filters: { from: fromIso, to: toIso, status: filters.status ?? null, userQuery: filters.userQuery ?? null, reasonQuery: filters.reasonQuery ?? null, limit: recentLimit },
+      filters: {
+        from: fromIso,
+        to: toIso,
+        status: filters.status ?? null,
+        userQuery: filters.userQuery ?? null,
+        reasonQuery: filters.reasonQuery ?? null,
+        limit: recentLimit,
+      },
       queue: {
         byStatus: counts,
         failedLastHour: failed1h ?? 0,
@@ -561,7 +601,6 @@ export const adminListBlockedNetworks = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (data ?? []).map((r) => ({ ...r, cidr: String(r.cidr ?? "") }));
-
   });
 
 export const adminAddBlockedNetwork = createServerFn({ method: "POST" })
@@ -599,8 +638,10 @@ export const adminDeleteBlockedNetwork = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("signup_blocked_networks").delete().eq("id", data.id);
+    const { error } = await supabaseAdmin
+      .from("signup_blocked_networks")
+      .delete()
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
-

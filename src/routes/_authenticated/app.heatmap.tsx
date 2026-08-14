@@ -45,7 +45,10 @@ function Page() {
   if (data.cells.length === 0) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Portfolio Heat Map" subtitle="Open exposure ও unrealized PnL ভিজ্যুয়ালাইজেশন।" />
+        <PageHeader
+          title="Portfolio Heat Map"
+          subtitle="Open exposure ও unrealized PnL ভিজ্যুয়ালাইজেশন।"
+        />
         <Card className="p-12 text-center text-muted-foreground">
           কোনো ওপেন পজিশন নেই। সিগন্যাল প্রসেস হলে এখানে দেখা যাবে।
         </Card>
@@ -57,7 +60,10 @@ function Page() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Portfolio Heat Map" subtitle="Open exposure ও unrealized PnL ভিজ্যুয়ালাইজেশন।" />
+      <PageHeader
+        title="Portfolio Heat Map"
+        subtitle="Open exposure ও unrealized PnL ভিজ্যুয়ালাইজেশন।"
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="p-4">
@@ -66,7 +72,9 @@ function Page() {
         </Card>
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">Unrealized PnL</div>
-          <div className={`text-2xl font-semibold mt-1 ${data.totalUnrealizedPnl >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+          <div
+            className={`text-2xl font-semibold mt-1 ${data.totalUnrealizedPnl >= 0 ? "text-emerald-500" : "text-rose-500"}`}
+          >
             {data.totalUnrealizedPnl >= 0 ? "+" : ""}${fmt(data.totalUnrealizedPnl)}
           </div>
         </Card>
@@ -89,19 +97,28 @@ function Page() {
               >
                 <div className="flex items-start justify-between">
                   <div className="font-semibold">{c.symbol}</div>
-                  <span className={`text-[10px] uppercase px-1.5 py-0.5 rounded ${
-                    c.side === "buy" ? "bg-emerald-500/20 text-emerald-400" :
-                    c.side === "sell" ? "bg-rose-500/20 text-rose-400" :
-                    "bg-amber-500/20 text-amber-400"
-                  }`}>{c.side === "buy" ? "LONG" : c.side === "sell" ? "SHORT" : "MIXED"}</span>
+                  <span
+                    className={`text-[10px] uppercase px-1.5 py-0.5 rounded ${
+                      c.side === "buy"
+                        ? "bg-emerald-500/20 text-emerald-400"
+                        : c.side === "sell"
+                          ? "bg-rose-500/20 text-rose-400"
+                          : "bg-amber-500/20 text-amber-400"
+                    }`}
+                  >
+                    {c.side === "buy" ? "LONG" : c.side === "sell" ? "SHORT" : "MIXED"}
+                  </span>
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
-                  Exposure: <span className="text-foreground font-medium">{c.exposurePct.toFixed(1)}%</span>
+                  Exposure:{" "}
+                  <span className="text-foreground font-medium">{c.exposurePct.toFixed(1)}%</span>
                 </div>
                 <div className="text-xs text-muted-foreground">
                   Notional: <span className="text-foreground">${fmt(c.notional)}</span>
                 </div>
-                <div className={`mt-1 text-sm font-semibold ${c.unrealizedPnl >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                <div
+                  className={`mt-1 text-sm font-semibold ${c.unrealizedPnl >= 0 ? "text-emerald-500" : "text-rose-500"}`}
+                >
                   {c.unrealizedPnl >= 0 ? "+" : ""}${fmt(c.unrealizedPnl)}
                 </div>
                 <div className="text-[10px] text-muted-foreground mt-0.5">

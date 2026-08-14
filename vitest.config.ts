@@ -11,7 +11,12 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary", "html"],
-      include: ["src/lib/risk/**", "src/lib/parser/**", "src/lib/backtest/**", "src/lib/exchanges/**"],
+      include: [
+        "src/lib/risk/**",
+        "src/lib/parser/**",
+        "src/lib/backtest/**",
+        "src/lib/exchanges/**",
+      ],
     },
   },
 });

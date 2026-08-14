@@ -5,7 +5,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { ShieldCheck, Store, TrendingUp, Users, BarChart3, Trash2 } from "lucide-react";
 import { PageHeader, Card, EmptyState } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   listPublishedStrategies,
@@ -16,8 +22,14 @@ import {
   type PublishedStrategy,
 } from "@/lib/marketplace.functions";
 
-const marketOpts = queryOptions({ queryKey: ["marketplace"], queryFn: () => listPublishedStrategies() });
-const myOpts = queryOptions({ queryKey: ["marketplace-mine"], queryFn: () => listMyPublishedStrategies() });
+const marketOpts = queryOptions({
+  queryKey: ["marketplace"],
+  queryFn: () => listPublishedStrategies(),
+});
+const myOpts = queryOptions({
+  queryKey: ["marketplace-mine"],
+  queryFn: () => listMyPublishedStrategies(),
+});
 
 export const Route = createFileRoute("/_authenticated/app/marketplace")({
   loader: ({ context }) =>
@@ -103,7 +115,9 @@ function Page() {
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Sort by</span>
           <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
-            <SelectTrigger className="h-9 w-[160px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9 w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="win_rate">Win rate</SelectItem>
               <SelectItem value="total_pnl">Total P&amp;L</SelectItem>
@@ -136,7 +150,9 @@ function Page() {
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold tracking-tight">My published strategies</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">Strategies you've published to the marketplace.</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Strategies you've published to the marketplace.
+            </p>
           </div>
         </div>
         {mine.length === 0 ? (
@@ -156,7 +172,8 @@ function Page() {
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
                       <Users className="mr-1 inline h-3 w-3" />
-                      {s.stats.subscriber_count} subscriber{s.stats.subscriber_count === 1 ? "" : "s"}
+                      {s.stats.subscriber_count} subscriber
+                      {s.stats.subscriber_count === 1 ? "" : "s"}
                       {" · "}
                       {s.stats.closed_trades} closed trades
                     </p>
@@ -166,7 +183,11 @@ function Page() {
                     variant="ghost"
                     className="gap-1 text-muted-foreground hover:text-destructive"
                     onClick={() => {
-                      if (confirm(`Unpublish "${s.name}"? Existing subscribers will keep their reference but new signals will not fan out.`)) {
+                      if (
+                        confirm(
+                          `Unpublish "${s.name}"? Existing subscribers will keep their reference but new signals will not fan out.`,
+                        )
+                      ) {
                         unpubMut.mutate(s.id);
                       }
                     }}
@@ -185,7 +206,12 @@ function Page() {
   );
 }
 
-function StrategyCard({ s, onSubscribe, onUnsubscribe, pending }: {
+function StrategyCard({
+  s,
+  onSubscribe,
+  onUnsubscribe,
+  pending,
+}: {
   s: PublishedStrategy;
   onSubscribe: () => void;
   onUnsubscribe: () => void;
@@ -205,15 +231,23 @@ function StrategyCard({ s, onSubscribe, onUnsubscribe, pending }: {
           <p className="mt-1 text-xs text-muted-foreground">
             by {s.owner_display_name} · {s.source_type}
           </p>
-          {s.description && <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{s.description}</p>}
+          {s.description && (
+            <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{s.description}</p>
+          )}
         </div>
         <div>
           {s.is_owner ? (
-            <Button size="sm" variant="outline" disabled>Your strategy</Button>
+            <Button size="sm" variant="outline" disabled>
+              Your strategy
+            </Button>
           ) : s.is_subscribed ? (
-            <Button size="sm" variant="outline" onClick={onUnsubscribe} disabled={pending}>Unsubscribe</Button>
+            <Button size="sm" variant="outline" onClick={onUnsubscribe} disabled={pending}>
+              Unsubscribe
+            </Button>
           ) : (
-            <Button size="sm" onClick={onSubscribe} disabled={pending}>Subscribe</Button>
+            <Button size="sm" onClick={onSubscribe} disabled={pending}>
+              Subscribe
+            </Button>
           )}
         </div>
       </div>
@@ -227,20 +261,29 @@ function StatsRow({ stats }: { stats: PublishedStrategy["stats"] }) {
     <div className="mt-3 grid grid-cols-3 gap-2 rounded-md border border-border bg-muted/20 p-2 text-xs sm:grid-cols-6">
       <Stat label="Win rate" value={fmtPct(stats.win_rate, 1)} />
       <Stat label="Trades" value={String(stats.closed_trades)} />
-      <Stat label="Total P&L" value={fmtNum(stats.total_pnl, 2)} tone={stats.total_pnl >= 0 ? "up" : "down"} />
+      <Stat
+        label="Total P&L"
+        value={fmtNum(stats.total_pnl, 2)}
+        tone={stats.total_pnl >= 0 ? "up" : "down"}
+      />
       <Stat label="Max DD" value={fmtPctRaw(stats.max_drawdown_pct)} tone="down" />
-      <Stat label="PF" value={stats.profit_factor === null ? "—" : fmtNum(stats.profit_factor, 2)} />
+      <Stat
+        label="PF"
+        value={stats.profit_factor === null ? "—" : fmtNum(stats.profit_factor, 2)}
+      />
       <Stat label="Subs" value={String(stats.subscriber_count)} />
       <div className="col-span-3 mt-1 flex items-center gap-1 text-[10px] text-muted-foreground sm:col-span-6">
         <BarChart3 className="h-3 w-3" />
-        Active {stats.active_days} day{stats.active_days === 1 ? "" : "s"} · {stats.total_signals} signals total
+        Active {stats.active_days} day{stats.active_days === 1 ? "" : "s"} · {stats.total_signals}{" "}
+        signals total
       </div>
     </div>
   );
 }
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: "up" | "down" }) {
-  const color = tone === "up" ? "text-emerald-400" : tone === "down" ? "text-rose-400" : "text-foreground";
+  const color =
+    tone === "up" ? "text-emerald-400" : tone === "down" ? "text-rose-400" : "text-foreground";
   return (
     <div>
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>

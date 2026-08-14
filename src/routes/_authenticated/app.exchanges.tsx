@@ -1,6 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useSuspenseQuery, useQuery, useMutation, useQueryClient, queryOptions } from "@tanstack/react-query";
+import {
+  useSuspenseQuery,
+  useQuery,
+  useMutation,
+  useQueryClient,
+  queryOptions,
+} from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { PageHeader, Card, EmptyState } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -56,13 +62,56 @@ type ExchangeMeta = {
 };
 
 const EXCHANGES: ExchangeMeta[] = [
-  { code: "binance", name: "Binance", initials: "BN", color: "bg-yellow-500/15 text-yellow-500 border-yellow-500/30", oauthSupported: true },
-  { code: "bybit", name: "Bybit", initials: "BY", color: "bg-orange-500/15 text-orange-500 border-orange-500/30" },
-  { code: "okx", name: "OKX", initials: "OK", color: "bg-zinc-500/15 text-zinc-200 border-zinc-500/30", requiresPassphrase: true, oauthSupported: true },
-  { code: "kucoin", name: "KuCoin", initials: "KC", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", requiresPassphrase: true },
-  { code: "mexc", name: "MEXC", initials: "MX", color: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-  { code: "mt5_bridge", name: "MetaTrader 5", initials: "MT", color: "bg-sky-500/15 text-sky-400 border-sky-500/30", bridge: true, bridgeHint: "Run the MT5 bridge EA on your terminal and expose its HTTP endpoint." },
-  { code: "dex_bridge", name: "DEX Wallet", initials: "DX", color: "bg-fuchsia-500/15 text-fuchsia-400 border-fuchsia-500/30", bridge: true, bridgeHint: "Self-hosted DEX signer bridge (Hyperliquid, GMX, dYdX, etc.)." },
+  {
+    code: "binance",
+    name: "Binance",
+    initials: "BN",
+    color: "bg-yellow-500/15 text-yellow-500 border-yellow-500/30",
+    oauthSupported: true,
+  },
+  {
+    code: "bybit",
+    name: "Bybit",
+    initials: "BY",
+    color: "bg-orange-500/15 text-orange-500 border-orange-500/30",
+  },
+  {
+    code: "okx",
+    name: "OKX",
+    initials: "OK",
+    color: "bg-zinc-500/15 text-zinc-200 border-zinc-500/30",
+    requiresPassphrase: true,
+    oauthSupported: true,
+  },
+  {
+    code: "kucoin",
+    name: "KuCoin",
+    initials: "KC",
+    color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    requiresPassphrase: true,
+  },
+  {
+    code: "mexc",
+    name: "MEXC",
+    initials: "MX",
+    color: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  },
+  {
+    code: "mt5_bridge",
+    name: "MetaTrader 5",
+    initials: "MT",
+    color: "bg-sky-500/15 text-sky-400 border-sky-500/30",
+    bridge: true,
+    bridgeHint: "Run the MT5 bridge EA on your terminal and expose its HTTP endpoint.",
+  },
+  {
+    code: "dex_bridge",
+    name: "DEX Wallet",
+    initials: "DX",
+    color: "bg-fuchsia-500/15 text-fuchsia-400 border-fuchsia-500/30",
+    bridge: true,
+    bridgeHint: "Self-hosted DEX signer bridge (Hyperliquid, GMX, dYdX, etc.).",
+  },
 ];
 
 type Step = "grid" | "method" | "manual";
@@ -94,14 +143,10 @@ function Page() {
   useEffect(() => {
     const ch = supabase
       .channel("exchange-balances-stream")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "exchange_balances" },
-        () => {
-          qc.invalidateQueries({ queryKey: ["exchange-balances"] });
-          qc.invalidateQueries({ queryKey: ["exchange-accounts"] });
-        },
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "exchange_balances" }, () => {
+        qc.invalidateQueries({ queryKey: ["exchange-balances"] });
+        qc.invalidateQueries({ queryKey: ["exchange-accounts"] });
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
@@ -389,25 +434,35 @@ function Page() {
             const meta = EXCHANGES.find((e) => e.code === acc.exchange_code);
             const rows = balancesByAcc[acc.id] ?? [];
             const totalUsd = totalUsdByAcc[acc.id] ?? 0;
-            const top = [...rows].sort((a, b) => Number(b.usd_value ?? 0) - Number(a.usd_value ?? 0)).slice(0, 4);
+            const top = [...rows]
+              .sort((a, b) => Number(b.usd_value ?? 0) - Number(a.usd_value ?? 0))
+              .slice(0, 4);
             return (
               <Card key={acc.id} className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     {meta && (
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-full border text-xs font-semibold ${meta.color}`}>
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-full border text-xs font-semibold ${meta.color}`}
+                      >
                         {meta.initials}
                       </div>
                     )}
                     <div>
                       <p className="font-medium">
                         {acc.label}{" "}
-                        <span className="ml-2 text-xs uppercase text-muted-foreground">{acc.exchange_code}</span>
+                        <span className="ml-2 text-xs uppercase text-muted-foreground">
+                          {acc.exchange_code}
+                        </span>
                       </p>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
                         <StatusBadge status={acc.status} />
                         <ModeToggle
-                          mode={(acc as { execution_mode?: string }).execution_mode === "paper" ? "paper" : "live"}
+                          mode={
+                            (acc as { execution_mode?: string }).execution_mode === "paper"
+                              ? "paper"
+                              : "live"
+                          }
                           disabled={modeM.isPending}
                           onChange={(m) => modeM.mutate({ id: acc.id, mode: m })}
                         />
@@ -425,7 +480,8 @@ function Page() {
                       )}
                       {acc.status === "invalid" && (
                         <p className="mt-1 text-xs text-muted-foreground">
-                          Re-generate API keys with <strong>Futures Trading</strong> enabled, then click Verify.
+                          Re-generate API keys with <strong>Futures Trading</strong> enabled, then
+                          click Verify.
                         </p>
                       )}
                     </div>
@@ -438,7 +494,9 @@ function Page() {
                       disabled={verifyingId === acc.id}
                       title="Re-verify API keys with the exchange"
                     >
-                      <ShieldCheck className={`mr-1 h-4 w-4 ${verifyingId === acc.id ? "animate-pulse" : ""}`} />
+                      <ShieldCheck
+                        className={`mr-1 h-4 w-4 ${verifyingId === acc.id ? "animate-pulse" : ""}`}
+                      />
                       Verify
                     </Button>
                     <Button
@@ -448,9 +506,16 @@ function Page() {
                       onClick={() => syncM.mutate(acc.id)}
                       disabled={syncingId === acc.id}
                     >
-                      <RefreshCw className={`h-4 w-4 ${syncingId === acc.id ? "animate-spin" : ""}`} />
+                      <RefreshCw
+                        className={`h-4 w-4 ${syncingId === acc.id ? "animate-spin" : ""}`}
+                      />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => delM.mutate(acc.id)} disabled={delM.isPending}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => delM.mutate(acc.id)}
+                      disabled={delM.isPending}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -465,10 +530,15 @@ function Page() {
                   {top.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {top.map((b) => (
-                        <span key={b.id} className="rounded-md border border-border px-2 py-1 text-xs">
+                        <span
+                          key={b.id}
+                          className="rounded-md border border-border px-2 py-1 text-xs"
+                        >
                           <span className="font-semibold">{b.asset}</span>{" "}
                           <span className="text-muted-foreground">
-                            {Number(b.total).toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                            {Number(b.total).toLocaleString(undefined, {
+                              maximumFractionDigits: 6,
+                            })}
                           </span>
                         </span>
                       ))}
@@ -486,14 +556,32 @@ function Page() {
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string; Icon: typeof ShieldCheck }> = {
-    active:  { label: "Active",   cls: "border-emerald-500/40 bg-emerald-500/10 text-emerald-400", Icon: ShieldCheck },
-    pending: { label: "Pending",  cls: "border-amber-500/40 bg-amber-500/10 text-amber-400",       Icon: ShieldAlert },
-    invalid: { label: "Invalid",  cls: "border-destructive/50 bg-destructive/10 text-destructive", Icon: ShieldAlert },
+    active: {
+      label: "Active",
+      cls: "border-emerald-500/40 bg-emerald-500/10 text-emerald-400",
+      Icon: ShieldCheck,
+    },
+    pending: {
+      label: "Pending",
+      cls: "border-amber-500/40 bg-amber-500/10 text-amber-400",
+      Icon: ShieldAlert,
+    },
+    invalid: {
+      label: "Invalid",
+      cls: "border-destructive/50 bg-destructive/10 text-destructive",
+      Icon: ShieldAlert,
+    },
   };
-  const m = map[status] ?? { label: status, cls: "border-border bg-muted text-muted-foreground", Icon: ShieldAlert };
+  const m = map[status] ?? {
+    label: status,
+    cls: "border-border bg-muted text-muted-foreground",
+    Icon: ShieldAlert,
+  };
   const Icon = m.Icon;
   return (
-    <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${m.cls}`}>
+    <span
+      className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${m.cls}`}
+    >
       <Icon className="h-3 w-3" />
       {m.label}
     </span>

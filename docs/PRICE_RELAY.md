@@ -36,7 +36,7 @@ skips REST calls entirely.
   {
     "ticks": [
       { "exchange_code": "binance", "symbol": "BTCUSDT", "price": 68321.5 },
-      { "exchange_code": "bybit",   "symbol": "ETHUSDT", "price": 3210.4 }
+      { "exchange_code": "bybit", "symbol": "ETHUSDT", "price": 3210.4 }
     ]
   }
   ```
@@ -71,7 +71,9 @@ themselves; the app's edge runtime cannot host it.
 const BASE_URL = process.env.HERMES_BASE_URL;
 const SECRET = process.env.PRICE_RELAY_SECRET;
 const SYMBOLS = (process.env.RELAY_SYMBOLS ?? "BTCUSDT,ETHUSDT")
-  .split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+  .split(",")
+  .map((s) => s.trim().toUpperCase())
+  .filter(Boolean);
 const FLUSH_MS = Number(process.env.FLUSH_INTERVAL_MS ?? 1500);
 
 if (!BASE_URL || !SECRET || SYMBOLS.length === 0) {
@@ -117,9 +119,17 @@ function connectBinance() {
 
   const open = () => {
     const ws = new WebSocket(url);
-    ws.addEventListener("open", () => { backoff = 1000; console.log("binance connected"); });
+    ws.addEventListener("open", () => {
+      backoff = 1000;
+      console.log("binance connected");
+    });
     ws.addEventListener("message", (ev) => {
-      let data; try { data = JSON.parse(ev.data.toString()); } catch { return; }
+      let data;
+      try {
+        data = JSON.parse(ev.data.toString());
+      } catch {
+        return;
+      }
       if (!Array.isArray(data)) return;
       for (const row of data) {
         const sym = String(row.s ?? "").toUpperCase();
@@ -135,7 +145,11 @@ function connectBinance() {
       setTimeout(open, wait);
     };
     ws.addEventListener("close", retry);
-    ws.addEventListener("error", () => { try { ws.close(); } catch {} });
+    ws.addEventListener("error", () => {
+      try {
+        ws.close();
+      } catch {}
+    });
   };
   open();
 }
@@ -155,11 +169,18 @@ function connectBybit() {
       const args = SYMBOLS.map((s) => `tickers.${s}`);
       ws.send(JSON.stringify({ op: "subscribe", args }));
       pingTimer = setInterval(() => {
-        try { ws.send(JSON.stringify({ op: "ping" })); } catch {}
+        try {
+          ws.send(JSON.stringify({ op: "ping" }));
+        } catch {}
       }, 20_000);
     });
     ws.addEventListener("message", (ev) => {
-      let msg; try { msg = JSON.parse(ev.data.toString()); } catch { return; }
+      let msg;
+      try {
+        msg = JSON.parse(ev.data.toString());
+      } catch {
+        return;
+      }
       if (!msg?.topic || !String(msg.topic).startsWith("tickers.")) return;
       const d = msg.data;
       if (!d) return;
@@ -177,7 +198,11 @@ function connectBybit() {
       setTimeout(open, wait);
     };
     ws.addEventListener("close", retry);
-    ws.addEventListener("error", () => { try { ws.close(); } catch {} });
+    ws.addEventListener("error", () => {
+      try {
+        ws.close();
+      } catch {}
+    });
   };
   open();
 }

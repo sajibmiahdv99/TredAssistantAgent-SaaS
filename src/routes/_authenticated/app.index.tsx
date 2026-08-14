@@ -18,7 +18,17 @@ export const Route = createFileRoute("/_authenticated/app/")({
   notFoundComponent: () => <p>Not found.</p>,
 });
 
-function Stat({ icon: Icon, label, value, hint }: { icon: React.ElementType; label: string; value: string; hint?: string }) {
+function Stat({
+  icon: Icon,
+  label,
+  value,
+  hint,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  hint?: string;
+}) {
   return (
     <Card>
       <div className="flex items-start justify-between">
@@ -41,10 +51,30 @@ function Page() {
     <>
       <PageHeader title="Overview" subtitle="Account snapshot, P&L, and connection status." />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat icon={Network} label="Exchanges" value={String(data.exchangeCount)} hint="Connected accounts" />
-        <Stat icon={Activity} label="Active trades" value={String(data.activeTradesCount)} hint={`Open P&L ${data.openPnl.toFixed(2)}`} />
-        <Stat icon={Wallet} label="Balance" value={`$${Number(data.balance?.available_balance ?? 0).toLocaleString()}`} hint="Available" />
-        <Stat icon={CreditCard} label="Plan" value={sub?.plan_code ?? "Free"} hint={sub?.status ?? "No subscription"} />
+        <Stat
+          icon={Network}
+          label="Exchanges"
+          value={String(data.exchangeCount)}
+          hint="Connected accounts"
+        />
+        <Stat
+          icon={Activity}
+          label="Active trades"
+          value={String(data.activeTradesCount)}
+          hint={`Open P&L ${data.openPnl.toFixed(2)}`}
+        />
+        <Stat
+          icon={Wallet}
+          label="Balance"
+          value={`$${Number(data.balance?.available_balance ?? 0).toLocaleString()}`}
+          hint="Available"
+        />
+        <Stat
+          icon={CreditCard}
+          label="Plan"
+          value={sub?.plan_code ?? "Free"}
+          hint={sub?.status ?? "No subscription"}
+        />
       </div>
       {analytics.balanceSeries.length > 0 && (
         <DashboardCharts

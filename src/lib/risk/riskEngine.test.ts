@@ -51,25 +51,19 @@ describe("riskEngine — evaluateRisk", () => {
   });
 
   it("rejects when max open positions reached", () => {
-    const d = evaluateRisk(
-      baseInput({ context: { ...baseInput().context, openPositions: 5 } }),
-    );
+    const d = evaluateRisk(baseInput({ context: { ...baseInput().context, openPositions: 5 } }));
     expect(d.allow).toBe(false);
     expect(d.reason).toMatch(/max open positions/i);
   });
 
   it("rejects when daily loss limit hit", () => {
-    const d = evaluateRisk(
-      baseInput({ context: { ...baseInput().context, dailyLossPercent: 5 } }),
-    );
+    const d = evaluateRisk(baseInput({ context: { ...baseInput().context, dailyLossPercent: 5 } }));
     expect(d.allow).toBe(false);
     expect(d.reason).toMatch(/daily loss/i);
   });
 
   it("rejects when drawdown breached", () => {
-    const d = evaluateRisk(
-      baseInput({ context: { ...baseInput().context, drawdownPercent: 21 } }),
-    );
+    const d = evaluateRisk(baseInput({ context: { ...baseInput().context, drawdownPercent: 21 } }));
     expect(d.allow).toBe(false);
     expect(d.reason).toMatch(/drawdown/i);
   });
@@ -105,7 +99,14 @@ describe("riskEngine — evaluateRisk", () => {
         symbol: "BTCUSDT",
         leverage: 20,
         symbolCaps: [
-          { symbol: "BTCUSDT", asset_class: null, max_exposure_pct: null, max_open_positions: null, max_leverage: 3, enabled: true },
+          {
+            symbol: "BTCUSDT",
+            asset_class: null,
+            max_exposure_pct: null,
+            max_open_positions: null,
+            max_leverage: 3,
+            enabled: true,
+          },
         ],
       }),
     );
@@ -119,7 +120,14 @@ describe("riskEngine — evaluateRisk", () => {
       baseInput({
         symbol: "BTCUSDT",
         symbolCaps: [
-          { symbol: "BTCUSDT", asset_class: null, max_exposure_pct: 0.5, max_open_positions: null, max_leverage: null, enabled: true },
+          {
+            symbol: "BTCUSDT",
+            asset_class: null,
+            max_exposure_pct: 0.5,
+            max_open_positions: null,
+            max_leverage: null,
+            enabled: true,
+          },
         ],
         context: {
           ...baseInput().context,
@@ -140,23 +148,41 @@ describe("riskEngine — evaluateRisk", () => {
 
 describe("riskEngine — adaptiveRiskMultiplier", () => {
   it("defaults to 1.0 neutral", () => {
-    expect(adaptiveRiskMultiplier({ consecutiveLosses: 0, consecutiveWins: 0, recentWinRate: null })).toBe(1);
+    expect(
+      adaptiveRiskMultiplier({ consecutiveLosses: 0, consecutiveWins: 0, recentWinRate: null }),
+    ).toBe(1);
   });
 
   it("penalises consecutive losses down to floor 0.25", () => {
-    expect(adaptiveRiskMultiplier({ consecutiveLosses: 1, consecutiveWins: 0, recentWinRate: null })).toBeCloseTo(0.85, 6);
-    expect(adaptiveRiskMultiplier({ consecutiveLosses: 10, consecutiveWins: 0, recentWinRate: null })).toBeCloseTo(0.25, 6);
+    expect(
+      adaptiveRiskMultiplier({ consecutiveLosses: 1, consecutiveWins: 0, recentWinRate: null }),
+    ).toBeCloseTo(0.85, 6);
+    expect(
+      adaptiveRiskMultiplier({ consecutiveLosses: 10, consecutiveWins: 0, recentWinRate: null }),
+    ).toBeCloseTo(0.25, 6);
   });
 
   it("rewards hot streak capped at 1.5", () => {
-    const m = adaptiveRiskMultiplier({ consecutiveLosses: 0, consecutiveWins: 10, recentWinRate: null });
+    const m = adaptiveRiskMultiplier({
+      consecutiveLosses: 0,
+      consecutiveWins: 10,
+      recentWinRate: null,
+    });
     expect(m).toBeLessThanOrEqual(1.5);
     expect(m).toBeGreaterThan(1);
   });
 
   it("scales by win rate", () => {
-    const low = adaptiveRiskMultiplier({ consecutiveLosses: 0, consecutiveWins: 0, recentWinRate: 0.3 });
-    const high = adaptiveRiskMultiplier({ consecutiveLosses: 0, consecutiveWins: 0, recentWinRate: 0.7 });
+    const low = adaptiveRiskMultiplier({
+      consecutiveLosses: 0,
+      consecutiveWins: 0,
+      recentWinRate: 0.3,
+    });
+    const high = adaptiveRiskMultiplier({
+      consecutiveLosses: 0,
+      consecutiveWins: 0,
+      recentWinRate: 0.7,
+    });
     expect(low).toBeLessThan(1);
     expect(high).toBeGreaterThan(1);
   });

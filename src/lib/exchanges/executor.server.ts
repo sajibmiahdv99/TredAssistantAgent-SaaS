@@ -6,10 +6,10 @@ import { createHmac } from "crypto";
 import { paperPlace, paperCancel, paperFetch, paperValidate } from "./paperExecutor.server";
 
 export type PlaceOrderInput = {
-  symbol: string;          // e.g. "BTCUSDT"
-  side: "long" | "short";  // normalised
+  symbol: string; // e.g. "BTCUSDT"
+  side: "long" | "short"; // normalised
   quantity: number;
-  entry?: number | null;   // null = market
+  entry?: number | null; // null = market
   stopLoss?: number | null;
   takeProfit?: number | null;
   leverage?: number | null;
@@ -125,23 +125,42 @@ async function binancePlace(creds: ExchangeCreds, o: PlaceOrderInput): Promise<P
 
 function mapBinanceStatus(s: string): PlaceOrderResult["status"] {
   switch (s) {
-    case "FILLED": return "filled";
-    case "PARTIALLY_FILLED": return "partial";
-    case "NEW": return "open";
+    case "FILLED":
+      return "filled";
+    case "PARTIALLY_FILLED":
+      return "partial";
+    case "NEW":
+      return "open";
     case "REJECTED":
     case "EXPIRED":
-    case "CANCELED": return "rejected";
-    default: return "open";
+    case "CANCELED":
+      return "rejected";
+    default:
+      return "open";
   }
 }
 
-async function binanceCancel(creds: ExchangeCreds, symbol: string, exchangeOrderId: string): Promise<void> {
+async function binanceCancel(
+  creds: ExchangeCreds,
+  symbol: string,
+  exchangeOrderId: string,
+): Promise<void> {
   await binanceSigned(creds, "DELETE", "/fapi/v1/order", { symbol, orderId: exchangeOrderId });
 }
 
-async function binanceFetch(creds: ExchangeCreds, symbol: string, exchangeOrderId: string): Promise<PlaceOrderResult> {
-  const r = (await binanceSigned(creds, "GET", "/fapi/v1/order", { symbol, orderId: exchangeOrderId })) as {
-    orderId: number; status: string; avgPrice?: string; executedQty?: string;
+async function binanceFetch(
+  creds: ExchangeCreds,
+  symbol: string,
+  exchangeOrderId: string,
+): Promise<PlaceOrderResult> {
+  const r = (await binanceSigned(creds, "GET", "/fapi/v1/order", {
+    symbol,
+    orderId: exchangeOrderId,
+  })) as {
+    orderId: number;
+    status: string;
+    avgPrice?: string;
+    executedQty?: string;
   };
   return {
     exchangeOrderId: String(r.orderId),
@@ -163,7 +182,8 @@ async function bybitSigned(
 ): Promise<unknown> {
   const ts = Date.now().toString();
   const recv = "10000";
-  const body = method === "GET" ? qs(params as Record<string, string | number>) : JSON.stringify(params);
+  const body =
+    method === "GET" ? qs(params as Record<string, string | number>) : JSON.stringify(params);
   const preSign = ts + creds.apiKey + recv + body;
   const sig = sign(creds.apiSecret, preSign);
   const url = method === "GET" ? `${BYBIT}${path}?${body}` : `${BYBIT}${path}`;
@@ -215,7 +235,11 @@ async function bybitPlace(creds: ExchangeCreds, o: PlaceOrderInput): Promise<Pla
   };
 }
 
-async function bybitCancel(creds: ExchangeCreds, symbol: string, exchangeOrderId: string): Promise<void> {
+async function bybitCancel(
+  creds: ExchangeCreds,
+  symbol: string,
+  exchangeOrderId: string,
+): Promise<void> {
   await bybitSigned(creds, "POST", "/v5/order/cancel", {
     category: "linear",
     symbol,
@@ -223,12 +247,18 @@ async function bybitCancel(creds: ExchangeCreds, symbol: string, exchangeOrderId
   });
 }
 
-async function bybitFetch(creds: ExchangeCreds, symbol: string, exchangeOrderId: string): Promise<PlaceOrderResult> {
+async function bybitFetch(
+  creds: ExchangeCreds,
+  symbol: string,
+  exchangeOrderId: string,
+): Promise<PlaceOrderResult> {
   const r = (await bybitSigned(creds, "GET", "/v5/order/realtime", {
     category: "linear",
     symbol,
     orderId: exchangeOrderId,
-  })) as { list: { orderId: string; orderStatus: string; avgPrice?: string; cumExecQty?: string }[] };
+  })) as {
+    list: { orderId: string; orderStatus: string; avgPrice?: string; cumExecQty?: string }[];
+  };
   const row = r.list?.[0];
   if (!row) throw new Error("bybit: order not found");
   return {
@@ -242,15 +272,20 @@ async function bybitFetch(creds: ExchangeCreds, symbol: string, exchangeOrderId:
 
 function mapBybitStatus(s: string): PlaceOrderResult["status"] {
   switch (s) {
-    case "Filled": return "filled";
-    case "PartiallyFilled": return "partial";
+    case "Filled":
+      return "filled";
+    case "PartiallyFilled":
+      return "partial";
     case "New":
     case "Created":
-    case "Untriggered": return "open";
+    case "Untriggered":
+      return "open";
     case "Rejected":
     case "Cancelled":
-    case "Deactivated": return "rejected";
-    default: return "open";
+    case "Deactivated":
+      return "rejected";
+    default:
+      return "open";
   }
 }
 
@@ -303,10 +338,16 @@ async function okxPlace(creds: ExchangeCreds, o: PlaceOrderInput): Promise<Place
   if (o.entry) body.px = String(o.entry);
   if (o.leverage && o.leverage > 1) {
     await okxRequest(creds, "POST", "/api/v5/account/set-leverage", {
-      instId: o.symbol, lever: String(Math.floor(o.leverage)), mgnMode: "cross",
+      instId: o.symbol,
+      lever: String(Math.floor(o.leverage)),
+      mgnMode: "cross",
     }).catch(() => undefined);
   }
-  const data = (await okxRequest(creds, "POST", "/api/v5/trade/order", body)) as Array<{ ordId: string; sCode: string; sMsg: string }>;
+  const data = (await okxRequest(creds, "POST", "/api/v5/trade/order", body)) as Array<{
+    ordId: string;
+    sCode: string;
+    sMsg: string;
+  }>;
   const row = Array.isArray(data) ? data[0] : null;
   if (!row || row.sCode !== "0") throw new Error(`OKX order failed: ${row?.sMsg}`);
   return { exchangeOrderId: row.ordId, status: "open", raw: row };
@@ -316,12 +357,32 @@ async function okxCancel(creds: ExchangeCreds, symbol: string, id: string): Prom
   await okxRequest(creds, "POST", "/api/v5/trade/cancel-order", { instId: symbol, ordId: id });
 }
 
-async function okxFetch(creds: ExchangeCreds, symbol: string, id: string): Promise<PlaceOrderResult> {
-  const data = (await okxRequest(creds, "GET", `/api/v5/trade/order?instId=${encodeURIComponent(symbol)}&ordId=${encodeURIComponent(id)}`)) as Array<{ ordId: string; state: string; avgPx?: string; accFillSz?: string }>;
+async function okxFetch(
+  creds: ExchangeCreds,
+  symbol: string,
+  id: string,
+): Promise<PlaceOrderResult> {
+  const data = (await okxRequest(
+    creds,
+    "GET",
+    `/api/v5/trade/order?instId=${encodeURIComponent(symbol)}&ordId=${encodeURIComponent(id)}`,
+  )) as Array<{ ordId: string; state: string; avgPx?: string; accFillSz?: string }>;
   const row = Array.isArray(data) ? data[0] : null;
   if (!row) throw new Error("OKX: order not found");
-  const stMap: Record<string, PlaceOrderResult["status"]> = { filled: "filled", partially_filled: "partial", live: "open", cancelled: "rejected", mmp_canceled: "rejected" };
-  return { exchangeOrderId: row.ordId, status: stMap[row.state] ?? "open", fillPrice: row.avgPx ? Number(row.avgPx) : undefined, filledQuantity: row.accFillSz ? Number(row.accFillSz) : undefined, raw: row };
+  const stMap: Record<string, PlaceOrderResult["status"]> = {
+    filled: "filled",
+    partially_filled: "partial",
+    live: "open",
+    cancelled: "rejected",
+    mmp_canceled: "rejected",
+  };
+  return {
+    exchangeOrderId: row.ordId,
+    status: stMap[row.state] ?? "open",
+    fillPrice: row.avgPx ? Number(row.avgPx) : undefined,
+    filledQuantity: row.accFillSz ? Number(row.accFillSz) : undefined,
+    raw: row,
+  };
 }
 
 async function okxValidate(creds: ExchangeCreds): Promise<ValidationResult> {
@@ -329,7 +390,12 @@ async function okxValidate(creds: ExchangeCreds): Promise<ValidationResult> {
     await okxRequest(creds, "GET", "/api/v5/account/balance");
     return { ok: true, canTrade: true, permissions: ["trade", "read"] };
   } catch (e) {
-    return { ok: false, canTrade: false, permissions: [], error: e instanceof Error ? e.message : String(e) };
+    return {
+      ok: false,
+      canTrade: false,
+      permissions: [],
+      error: e instanceof Error ? e.message : String(e),
+    };
   }
 }
 
@@ -337,7 +403,9 @@ async function okxValidate(creds: ExchangeCreds): Promise<ValidationResult> {
 const KUCOIN_FUTURES = "https://api-futures.kucoin.com";
 
 function kcSign(secret: string, ts: string, method: string, path: string, body: string): string {
-  return createHmac("sha256", secret).update(ts + method + path + body).digest("base64");
+  return createHmac("sha256", secret)
+    .update(ts + method + path + body)
+    .digest("base64");
 }
 
 async function kcRequest(
@@ -349,7 +417,9 @@ async function kcRequest(
   const ts = Date.now().toString();
   const bodyStr = body ? JSON.stringify(body) : "";
   const sig = kcSign(creds.apiSecret, ts, method, path, bodyStr);
-  const passphraseSig = createHmac("sha256", creds.apiSecret).update(creds.passphrase ?? "").digest("base64");
+  const passphraseSig = createHmac("sha256", creds.apiSecret)
+    .update(creds.passphrase ?? "")
+    .digest("base64");
   const url = `${KUCOIN_FUTURES}${path}`;
   const res = await fetch(url, {
     method,
@@ -389,10 +459,29 @@ async function kcCancel(creds: ExchangeCreds, _symbol: string, id: string): Prom
   await kcRequest(creds, "DELETE", `/api/v1/orders/${id}`);
 }
 
-async function kcFetch(creds: ExchangeCreds, _symbol: string, id: string): Promise<PlaceOrderResult> {
-  const data = (await kcRequest(creds, "GET", `/api/v1/orders/${id}`)) as { id: string; status: string; dealValue?: string; dealSize?: string };
-  const stMap: Record<string, PlaceOrderResult["status"]> = { done: "filled", open: "open", active: "open", cancelled: "rejected" };
-  return { exchangeOrderId: data.id, status: stMap[data.status] ?? "open", filledQuantity: data.dealSize ? Number(data.dealSize) : undefined, raw: data };
+async function kcFetch(
+  creds: ExchangeCreds,
+  _symbol: string,
+  id: string,
+): Promise<PlaceOrderResult> {
+  const data = (await kcRequest(creds, "GET", `/api/v1/orders/${id}`)) as {
+    id: string;
+    status: string;
+    dealValue?: string;
+    dealSize?: string;
+  };
+  const stMap: Record<string, PlaceOrderResult["status"]> = {
+    done: "filled",
+    open: "open",
+    active: "open",
+    cancelled: "rejected",
+  };
+  return {
+    exchangeOrderId: data.id,
+    status: stMap[data.status] ?? "open",
+    filledQuantity: data.dealSize ? Number(data.dealSize) : undefined,
+    raw: data,
+  };
 }
 
 async function kcValidate(creds: ExchangeCreds): Promise<ValidationResult> {
@@ -400,7 +489,12 @@ async function kcValidate(creds: ExchangeCreds): Promise<ValidationResult> {
     await kcRequest(creds, "GET", "/api/v1/account-overview?currency=USDT");
     return { ok: true, canTrade: true, permissions: ["trade", "read"] };
   } catch (e) {
-    return { ok: false, canTrade: false, permissions: [], error: e instanceof Error ? e.message : String(e) };
+    return {
+      ok: false,
+      canTrade: false,
+      permissions: [],
+      error: e instanceof Error ? e.message : String(e),
+    };
   }
 }
 
@@ -408,7 +502,9 @@ async function kcValidate(creds: ExchangeCreds): Promise<ValidationResult> {
 const MEXC_FUTURES = "https://futures.mexc.com";
 
 function mexcSign(secret: string, ts: string, body: string): string {
-  return createHmac("sha256", secret).update(body + ts).digest("hex");
+  return createHmac("sha256", secret)
+    .update(body + ts)
+    .digest("hex");
 }
 
 async function mexcRequest(
@@ -420,22 +516,30 @@ async function mexcRequest(
   const ts = Date.now().toString();
   const bodyStr = params ? JSON.stringify(params) : "";
   const sig = mexcSign(creds.apiSecret, ts, bodyStr);
-  const url = method === "GET" && params
-    ? `${MEXC_FUTURES}${path}?${Object.entries(params).map(([k, v]) => `${k}=${v}`).join("&")}`
-    : `${MEXC_FUTURES}${path}`;
+  const url =
+    method === "GET" && params
+      ? `${MEXC_FUTURES}${path}?${Object.entries(params)
+          .map(([k, v]) => `${k}=${v}`)
+          .join("&")}`
+      : `${MEXC_FUTURES}${path}`;
   const res = await fetch(url, {
     method,
     headers: {
-      "ApiKey": creds.apiKey,
+      ApiKey: creds.apiKey,
       "Request-Time": ts,
-      "Signature": sig,
+      Signature: sig,
       "Content-Type": "application/json",
     },
     body: method === "POST" ? bodyStr : undefined,
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`MEXC ${res.status}: ${text.slice(0, 200)}`);
-  const json = JSON.parse(text) as { success: boolean; code: number; message?: string; data: unknown };
+  const json = JSON.parse(text) as {
+    success: boolean;
+    code: number;
+    message?: string;
+    data: unknown;
+  };
   if (!json.success) throw new Error(`MEXC: ${json.message ?? json.code}`);
   return json.data;
 }
@@ -454,7 +558,9 @@ async function mexcPlace(creds: ExchangeCreds, o: PlaceOrderInput): Promise<Plac
   if (o.entry) body.price = o.entry;
   if (o.stopLoss) body.stopLossPrice = o.stopLoss;
   if (o.takeProfit) body.takeProfitPrice = o.takeProfit;
-  const data = (await mexcRequest(creds, "POST", "/api/v1/private/order/submit", body)) as { orderId: string };
+  const data = (await mexcRequest(creds, "POST", "/api/v1/private/order/submit", body)) as {
+    orderId: string;
+  };
   return { exchangeOrderId: data.orderId, status: "open", raw: data };
 }
 
@@ -462,10 +568,31 @@ async function mexcCancel(creds: ExchangeCreds, symbol: string, id: string): Pro
   await mexcRequest(creds, "POST", "/api/v1/private/order/cancel", { orderId: id, symbol });
 }
 
-async function mexcFetch(creds: ExchangeCreds, _symbol: string, id: string): Promise<PlaceOrderResult> {
-  const data = (await mexcRequest(creds, "GET", `/api/v1/private/order/get/${id}`)) as { orderId: string; state: number; avgPrice?: number; filledVolume?: number };
-  const stMap: Record<number, PlaceOrderResult["status"]> = { 2: "filled", 4: "partial", 1: "open", 3: "rejected", 5: "rejected" };
-  return { exchangeOrderId: data.orderId, status: stMap[data.state] ?? "open", fillPrice: data.avgPrice ?? undefined, filledQuantity: data.filledVolume ?? undefined, raw: data };
+async function mexcFetch(
+  creds: ExchangeCreds,
+  _symbol: string,
+  id: string,
+): Promise<PlaceOrderResult> {
+  const data = (await mexcRequest(creds, "GET", `/api/v1/private/order/get/${id}`)) as {
+    orderId: string;
+    state: number;
+    avgPrice?: number;
+    filledVolume?: number;
+  };
+  const stMap: Record<number, PlaceOrderResult["status"]> = {
+    2: "filled",
+    4: "partial",
+    1: "open",
+    3: "rejected",
+    5: "rejected",
+  };
+  return {
+    exchangeOrderId: data.orderId,
+    status: stMap[data.state] ?? "open",
+    fillPrice: data.avgPrice ?? undefined,
+    filledQuantity: data.filledVolume ?? undefined,
+    raw: data,
+  };
 }
 
 async function mexcValidate(creds: ExchangeCreds): Promise<ValidationResult> {
@@ -473,7 +600,12 @@ async function mexcValidate(creds: ExchangeCreds): Promise<ValidationResult> {
     await mexcRequest(creds, "GET", "/api/v1/private/account/assets");
     return { ok: true, canTrade: true, permissions: ["trade", "read"] };
   } catch (e) {
-    return { ok: false, canTrade: false, permissions: [], error: e instanceof Error ? e.message : String(e) };
+    return {
+      ok: false,
+      canTrade: false,
+      permissions: [],
+      error: e instanceof Error ? e.message : String(e),
+    };
   }
 }
 
@@ -509,7 +641,11 @@ async function bybitValidate(creds: ExchangeCreds): Promise<ValidationResult> {
       readOnly?: number;
     };
     const flat = Object.values(r.permissions ?? {}).flat();
-    const canTrade = !r.readOnly && (flat.includes("Order") || flat.includes("ContractTrade") || flat.includes("DerivativesTrade"));
+    const canTrade =
+      !r.readOnly &&
+      (flat.includes("Order") ||
+        flat.includes("ContractTrade") ||
+        flat.includes("DerivativesTrade"));
     return { ok: true, canTrade, permissions: flat };
   } catch (e) {
     return { ok: false, canTrade: false, permissions: [], error: friendlyError(e, "bybit") };
@@ -519,7 +655,8 @@ async function bybitValidate(creds: ExchangeCreds): Promise<ValidationResult> {
 function friendlyError(e: unknown, prefix: string): string {
   const raw = e instanceof Error ? e.message : String(e);
   if (/-2014|API-key format invalid|Invalid API-key/i.test(raw)) return "API key is malformed.";
-  if (/-2015|Invalid API-key, IP, or permissions/i.test(raw)) return "Invalid key, IP not whitelisted, or missing futures permission.";
+  if (/-2015|Invalid API-key, IP, or permissions/i.test(raw))
+    return "Invalid key, IP not whitelisted, or missing futures permission.";
   if (/-2008|signature/i.test(raw)) return "API secret is incorrect (bad signature).";
   if (/10003|10004|10005|invalid api key/i.test(raw)) return "Bybit rejected the API key.";
   if (/timestamp|recvWindow/i.test(raw)) return "Clock drift — please retry.";
@@ -552,35 +689,90 @@ async function bridgeReq<T>(
 }
 
 async function bridgePlace(c: ExchangeCreds, o: PlaceOrderInput): Promise<PlaceOrderResult> {
-  const r = await bridgeReq<{ orderId: string; status: string; fillPrice?: number; filledQuantity?: number; raw?: unknown }>(
-    c, "POST", "/place", o,
-  );
+  const r = await bridgeReq<{
+    orderId: string;
+    status: string;
+    fillPrice?: number;
+    filledQuantity?: number;
+    raw?: unknown;
+  }>(c, "POST", "/place", o);
   const s = r.status?.toLowerCase();
   const status: PlaceOrderResult["status"] =
-    s === "filled" ? "filled" : s === "partial" ? "partial" : s === "rejected" ? "rejected" : "open";
-  return { exchangeOrderId: r.orderId, status, fillPrice: r.fillPrice, filledQuantity: r.filledQuantity, raw: r.raw ?? r };
+    s === "filled"
+      ? "filled"
+      : s === "partial"
+        ? "partial"
+        : s === "rejected"
+          ? "rejected"
+          : "open";
+  return {
+    exchangeOrderId: r.orderId,
+    status,
+    fillPrice: r.fillPrice,
+    filledQuantity: r.filledQuantity,
+    raw: r.raw ?? r,
+  };
 }
 async function bridgeCancel(c: ExchangeCreds, symbol: string, id: string): Promise<void> {
   await bridgeReq(c, "POST", "/cancel", { symbol, orderId: id });
 }
-async function bridgeFetch(c: ExchangeCreds, symbol: string, id: string): Promise<PlaceOrderResult> {
-  const r = await bridgeReq<{ orderId: string; status: string; fillPrice?: number; filledQuantity?: number; raw?: unknown }>(
-    c, "GET", `/order?symbol=${encodeURIComponent(symbol)}&orderId=${encodeURIComponent(id)}`,
-  );
+async function bridgeFetch(
+  c: ExchangeCreds,
+  symbol: string,
+  id: string,
+): Promise<PlaceOrderResult> {
+  const r = await bridgeReq<{
+    orderId: string;
+    status: string;
+    fillPrice?: number;
+    filledQuantity?: number;
+    raw?: unknown;
+  }>(c, "GET", `/order?symbol=${encodeURIComponent(symbol)}&orderId=${encodeURIComponent(id)}`);
   const s = r.status?.toLowerCase();
   const status: PlaceOrderResult["status"] =
-    s === "filled" ? "filled" : s === "partial" ? "partial" : s === "rejected" ? "rejected" : "open";
-  return { exchangeOrderId: r.orderId, status, fillPrice: r.fillPrice, filledQuantity: r.filledQuantity, raw: r.raw ?? r };
+    s === "filled"
+      ? "filled"
+      : s === "partial"
+        ? "partial"
+        : s === "rejected"
+          ? "rejected"
+          : "open";
+  return {
+    exchangeOrderId: r.orderId,
+    status,
+    fillPrice: r.fillPrice,
+    filledQuantity: r.filledQuantity,
+    raw: r.raw ?? r,
+  };
 }
 async function bridgeValidate(c: ExchangeCreds): Promise<ValidationResult> {
   if (!/^https?:\/\//i.test(c.apiKey)) {
-    return { ok: false, canTrade: false, permissions: [], error: "Bridge URL must start with http(s)://" };
+    return {
+      ok: false,
+      canTrade: false,
+      permissions: [],
+      error: "Bridge URL must start with http(s)://",
+    };
   }
   try {
-    const r = await bridgeReq<{ ok?: boolean; canTrade?: boolean; permissions?: string[]; venue?: string }>(c, "GET", "/health");
-    return { ok: r.ok !== false, canTrade: r.canTrade !== false, permissions: r.permissions ?? ["spot", "futures"] };
+    const r = await bridgeReq<{
+      ok?: boolean;
+      canTrade?: boolean;
+      permissions?: string[];
+      venue?: string;
+    }>(c, "GET", "/health");
+    return {
+      ok: r.ok !== false,
+      canTrade: r.canTrade !== false,
+      permissions: r.permissions ?? ["spot", "futures"],
+    };
   } catch (e) {
-    return { ok: false, canTrade: false, permissions: [], error: e instanceof Error ? e.message : "Bridge unreachable" };
+    return {
+      ok: false,
+      canTrade: false,
+      permissions: [],
+      error: e instanceof Error ? e.message : "Bridge unreachable",
+    };
   }
 }
 
@@ -592,14 +784,34 @@ type Adapter = {
   validate: (c: ExchangeCreds) => Promise<ValidationResult>;
 };
 const ADAPTERS: Record<string, Adapter> = {
-  binance:    { place: binancePlace, cancel: binanceCancel, fetch: binanceFetch, validate: binanceValidate },
-  bybit:      { place: bybitPlace,   cancel: bybitCancel,   fetch: bybitFetch,   validate: bybitValidate },
-  okx:        { place: okxPlace,     cancel: okxCancel,     fetch: okxFetch,     validate: okxValidate },
-  kucoin:     { place: kcPlace,      cancel: kcCancel,      fetch: kcFetch,      validate: kcValidate },
-  mexc:       { place: mexcPlace,    cancel: mexcCancel,    fetch: mexcFetch,    validate: mexcValidate },
-  mt5_bridge: { place: bridgePlace,  cancel: bridgeCancel,  fetch: bridgeFetch,  validate: bridgeValidate },
-  dex_bridge: { place: bridgePlace,  cancel: bridgeCancel,  fetch: bridgeFetch,  validate: bridgeValidate },
-  paper:      { place: (_c, o) => paperPlace(o), cancel: (_c, s, id) => paperCancel(s, id), fetch: (_c, s, id) => paperFetch(s, id), validate: () => paperValidate() },
+  binance: {
+    place: binancePlace,
+    cancel: binanceCancel,
+    fetch: binanceFetch,
+    validate: binanceValidate,
+  },
+  bybit: { place: bybitPlace, cancel: bybitCancel, fetch: bybitFetch, validate: bybitValidate },
+  okx: { place: okxPlace, cancel: okxCancel, fetch: okxFetch, validate: okxValidate },
+  kucoin: { place: kcPlace, cancel: kcCancel, fetch: kcFetch, validate: kcValidate },
+  mexc: { place: mexcPlace, cancel: mexcCancel, fetch: mexcFetch, validate: mexcValidate },
+  mt5_bridge: {
+    place: bridgePlace,
+    cancel: bridgeCancel,
+    fetch: bridgeFetch,
+    validate: bridgeValidate,
+  },
+  dex_bridge: {
+    place: bridgePlace,
+    cancel: bridgeCancel,
+    fetch: bridgeFetch,
+    validate: bridgeValidate,
+  },
+  paper: {
+    place: (_c, o) => paperPlace(o),
+    cancel: (_c, s, id) => paperCancel(s, id),
+    fetch: (_c, s, id) => paperFetch(s, id),
+    validate: () => paperValidate(),
+  },
 };
 
 export function isBridgeExchange(code: string): boolean {
@@ -611,7 +823,13 @@ export async function validateExchangeCreds(
   creds: ExchangeCreds,
 ): Promise<ValidationResult> {
   const a = ADAPTERS[exchangeCode];
-  if (!a) return { ok: false, canTrade: false, permissions: [], error: `Exchange ${exchangeCode} not yet supported` };
+  if (!a)
+    return {
+      ok: false,
+      canTrade: false,
+      permissions: [],
+      error: `Exchange ${exchangeCode} not yet supported`,
+    };
   return a.validate(creds);
 }
 
@@ -659,14 +877,18 @@ export async function fetchExchangeTicker(
 ): Promise<number | null> {
   try {
     if (exchangeCode === "binance") {
-      const res = await fetch(`${BINANCE_FAPI}/fapi/v1/ticker/price?symbol=${encodeURIComponent(symbol)}`);
+      const res = await fetch(
+        `${BINANCE_FAPI}/fapi/v1/ticker/price?symbol=${encodeURIComponent(symbol)}`,
+      );
       if (!res.ok) return null;
       const j = (await res.json()) as { price?: string };
       const n = j.price ? Number(j.price) : NaN;
       return Number.isFinite(n) ? n : null;
     }
     if (exchangeCode === "bybit") {
-      const res = await fetch(`${BYBIT}/v5/market/tickers?category=linear&symbol=${encodeURIComponent(symbol)}`);
+      const res = await fetch(
+        `${BYBIT}/v5/market/tickers?category=linear&symbol=${encodeURIComponent(symbol)}`,
+      );
       if (!res.ok) return null;
       const j = (await res.json()) as { result?: { list?: Array<{ lastPrice?: string }> } };
       const p = j.result?.list?.[0]?.lastPrice;
@@ -684,7 +906,7 @@ export async function fetchExchangeTicker(
 // Used by the position-sync worker to reconcile DB rows with exchange truth
 // (e.g. detect exchange-side SL/TP execution).
 export type PositionSnapshot = {
-  positionAmt: number;     // signed: + long, - short, 0 = flat
+  positionAmt: number; // signed: + long, - short, 0 = flat
   entryPrice: number | null;
   markPrice: number | null;
   unrealizedPnl: number | null;
@@ -698,7 +920,10 @@ export async function fetchExchangePosition(
 ): Promise<PositionSnapshot | null> {
   if (exchangeCode === "binance") {
     const r = (await binanceSigned(creds, "GET", "/fapi/v2/positionRisk", { symbol })) as Array<{
-      positionAmt: string; entryPrice: string; markPrice: string; unRealizedProfit: string;
+      positionAmt: string;
+      entryPrice: string;
+      markPrice: string;
+      unRealizedProfit: string;
     }>;
     const row = Array.isArray(r) ? r[0] : null;
     if (!row) return null;
@@ -713,8 +938,17 @@ export async function fetchExchangePosition(
   }
   if (exchangeCode === "bybit") {
     const r = (await bybitSigned(creds, "GET", "/v5/position/list", {
-      category: "linear", symbol,
-    })) as { list?: Array<{ size: string; side: string; avgPrice: string; markPrice: string; unrealisedPnl: string }> };
+      category: "linear",
+      symbol,
+    })) as {
+      list?: Array<{
+        size: string;
+        side: string;
+        avgPrice: string;
+        markPrice: string;
+        unrealisedPnl: string;
+      }>;
+    };
     const row = r.list?.[0];
     if (!row) return null;
     const size = Number(row.size);
@@ -729,9 +963,13 @@ export async function fetchExchangePosition(
   }
   if (isBridgeExchange(exchangeCode)) {
     try {
-      const r = await bridgeReq<{ positionAmt?: number; entryPrice?: number; markPrice?: number; unrealizedPnl?: number; raw?: unknown }>(
-        creds, "GET", `/position?symbol=${encodeURIComponent(symbol)}`,
-      );
+      const r = await bridgeReq<{
+        positionAmt?: number;
+        entryPrice?: number;
+        markPrice?: number;
+        unrealizedPnl?: number;
+        raw?: unknown;
+      }>(creds, "GET", `/position?symbol=${encodeURIComponent(symbol)}`);
       return {
         positionAmt: Number(r.positionAmt ?? 0),
         entryPrice: r.entryPrice ?? null,
@@ -739,7 +977,9 @@ export async function fetchExchangePosition(
         unrealizedPnl: r.unrealizedPnl ?? null,
         raw: r.raw ?? r,
       };
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   }
   return null;
 }

@@ -53,5 +53,10 @@ export function decryptSession(payload: string): string {
 }
 
 export function isEncryptionConfigured(): boolean {
-  try { loadKey("EXCHANGE_ENCRYPTION_KEY"); return true; } catch { return false; }
+  try {
+    loadKey("EXCHANGE_ENCRYPTION_KEY");
+    return true;
+  } catch {
+    return false;
+  }
 }

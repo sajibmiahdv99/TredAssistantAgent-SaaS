@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 // ============ Profile ============
 export const updateMyProfile = createServerFn({ method: "POST" })
@@ -16,10 +17,7 @@ export const updateMyProfile = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("profiles")
-      .update(data)
-      .eq("id", context.userId);
+    const { error } = await context.supabase.from("profiles").update(data).eq("id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -52,7 +50,8 @@ export const addExchangeAccount = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { encryptSecret } = await import("@/lib/crypto.server");
-    const { validateExchangeCreds, isExchangeExecutable } = await import("@/lib/exchanges/executor.server");
+    const { validateExchangeCreds, isExchangeExecutable } =
+      await import("@/lib/exchanges/executor.server");
 
     // Validate before persisting so users get an immediate, clear error.
     if (isExchangeExecutable(data.exchange_code)) {
@@ -101,7 +100,8 @@ export const revalidateExchangeAccount = createServerFn({ method: "POST" })
     if (!acct) throw new Error("Account not found");
 
     const { decryptSecret } = await import("@/lib/crypto.server");
-    const { validateExchangeCreds, isExchangeExecutable } = await import("@/lib/exchanges/executor.server");
+    const { validateExchangeCreds, isExchangeExecutable } =
+      await import("@/lib/exchanges/executor.server");
     if (!isExchangeExecutable(acct.exchange_code)) {
       throw new Error(`Exchange ${acct.exchange_code} is not yet supported for live trading.`);
     }
@@ -112,9 +112,13 @@ export const revalidateExchangeAccount = createServerFn({ method: "POST" })
     });
 
     const status = v.ok && v.canTrade ? "active" : "invalid";
-    const last_error = v.ok && v.canTrade
-      ? null
-      : v.error ?? (v.ok ? "Missing futures trading permission on this API key." : "Could not reach exchange");
+    const last_error =
+      v.ok && v.canTrade
+        ? null
+        : (v.error ??
+          (v.ok
+            ? "Missing futures trading permission on this API key."
+            : "Could not reach exchange"));
     await context.supabase
       .from("exchange_accounts")
       .update({
@@ -173,7 +177,11 @@ export const startTelegramLogin = createServerFn({ method: "POST" })
     z
       .object({
         label: z.string().min(1).max(64),
-        phone: z.string().min(5).max(32).regex(/^\+?[\d\s\-()]+$/, "invalid phone"),
+        phone: z
+          .string()
+          .min(5)
+          .max(32)
+          .regex(/^\+?[\d\s\-()]+$/, "invalid phone"),
       })
       .parse(d),
   )
@@ -221,7 +229,8 @@ export const verifyTelegramLogin = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { verifyLoginCode, verifyLoginPassword, friendlyTelegramError } = await import("@/lib/telegram/mtproto.server");
+    const { verifyLoginCode, verifyLoginPassword, friendlyTelegramError } =
+      await import("@/lib/telegram/mtproto.server");
     const { encryptSession, decryptSession } = await import("@/lib/crypto.server");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -281,9 +290,14 @@ export const verifyTelegramLogin = createServerFn({ method: "POST" })
   });
 
 async function markAccountActive(
-  supabase: any,
+  supabase: SupabaseClient,
   id: string,
-  result: { sessionString: string; userId: string; username: string | null; firstName: string | null },
+  result: {
+    sessionString: string;
+    userId: string;
+    username: string | null;
+    firstName: string | null;
+  },
 ) {
   const { encryptSession } = await import("@/lib/crypto.server");
   await supabase
@@ -350,7 +364,11 @@ export const deleteTelegramAccount = createServerFn({ method: "POST" })
       .eq("user_id", context.userId)
       .maybeSingle();
     if (row?.encrypted_session) {
-      try { await logOutSession(decryptSession(row.encrypted_session)); } catch { /* ignore */ }
+      try {
+        await logOutSession(decryptSession(row.encrypted_session));
+      } catch {
+        /* ignore */
+      }
     }
 
     const { error } = await context.supabase
@@ -381,7 +399,9 @@ export const listPersonalSignalChannels = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("personal_signal_channels")
-      .select("id,name,username,description,win_rate,signals_count,last_signal_at,is_active,is_signal_source,tg_chat_id,telegram_account_id,channel_type,webhook_token,published_source_id")
+      .select(
+        "id,name,username,description,win_rate,signals_count,last_signal_at,is_active,is_signal_source,tg_chat_id,telegram_account_id,channel_type,webhook_token,published_source_id",
+      )
       .eq("user_id", context.userId)
       .order("name");
     if (error) throw new Error(error.message);
@@ -411,7 +431,9 @@ export const createWebhookSignalSource = createServerFn({ method: "POST" })
         is_active: true,
         is_signal_source: true,
       })
-      .select("id,name,channel_type,webhook_token,is_active,is_signal_source,signals_count,last_signal_at,created_at")
+      .select(
+        "id,name,channel_type,webhook_token,is_active,is_signal_source,signals_count,last_signal_at,created_at",
+      )
       .single();
     if (error) throw new Error(error.message);
     return row;
@@ -455,7 +477,8 @@ export const syncTelegramChannels = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ telegramAccountId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { listDialogChannels, friendlyTelegramError } = await import("@/lib/telegram/mtproto.server");
+    const { listDialogChannels, friendlyTelegramError } =
+      await import("@/lib/telegram/mtproto.server");
     const { decryptSession } = await import("@/lib/crypto.server");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -552,21 +575,19 @@ export const upsertChannelRiskSettings = createServerFn({ method: "POST" })
         .maybeSingle();
       if (!own) throw new Error("exchange account not found");
     }
-    const { error } = await context.supabase
-      .from("channel_risk_settings")
-      .upsert(
-        {
-          user_id: context.userId,
-          channel_id: data.channelId,
-          allocation_percent: data.allocation_percent,
-          stop_loss_percent: data.stop_loss_percent,
-          take_profit_percent: data.take_profit_percent,
-          leverage: data.leverage,
-          is_active: data.is_active,
-          exchange_account_id: data.exchange_account_id,
-        },
-        { onConflict: "user_id,channel_id" },
-      );
+    const { error } = await context.supabase.from("channel_risk_settings").upsert(
+      {
+        user_id: context.userId,
+        channel_id: data.channelId,
+        allocation_percent: data.allocation_percent,
+        stop_loss_percent: data.stop_loss_percent,
+        take_profit_percent: data.take_profit_percent,
+        leverage: data.leverage,
+        is_active: data.is_active,
+        exchange_account_id: data.exchange_account_id,
+      },
+      { onConflict: "user_id,channel_id" },
+    );
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -585,9 +606,7 @@ export const listMyExchangeAccountsLite = createServerFn({ method: "GET" })
 
 export const setDefaultExchangeAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
-    z.object({ exchange_account_id: z.string().uuid().nullable() }).parse(d),
-  )
+  .inputValidator((d) => z.object({ exchange_account_id: z.string().uuid().nullable() }).parse(d))
   .handler(async ({ data, context }) => {
     if (data.exchange_account_id) {
       const { data: own } = await context.supabase
@@ -607,8 +626,6 @@ export const setDefaultExchangeAccount = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
-
-
 
 // ============ Risk settings ============
 export const getMyRiskSettings = createServerFn({ method: "GET" })
@@ -716,14 +733,15 @@ export const listOrderHistory = createServerFn({ method: "GET" })
 
 export const exportTradeHistory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { start_date?: string | null; end_date?: string | null; format?: "csv" | "json" }) =>
-    z
-      .object({
-        start_date: z.string().datetime().nullish(),
-        end_date: z.string().datetime().nullish(),
-        format: z.enum(["csv", "json"]).default("csv"),
-      })
-      .parse(d),
+  .inputValidator(
+    (d: { start_date?: string | null; end_date?: string | null; format?: "csv" | "json" }) =>
+      z
+        .object({
+          start_date: z.string().datetime().nullish(),
+          end_date: z.string().datetime().nullish(),
+          format: z.enum(["csv", "json"]).default("csv"),
+        })
+        .parse(d),
   )
   .handler(async ({ data, context }) => {
     let q = context.supabase
@@ -748,7 +766,6 @@ export const exportTradeHistory = createServerFn({ method: "POST" })
       summary: { total_pnl: totalPnl, total_trades: totalTrades, wins, losses, win_rate: winRate },
     };
   });
-
 
 export const getAnalytics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -818,8 +835,18 @@ export const getOverview = createServerFn({ method: "GET" })
     const uid = context.userId;
     const [exch, active, sub, balance] = await Promise.all([
       sb.from("exchange_accounts").select("id", { count: "exact", head: true }).eq("user_id", uid),
-      sb.from("orders").select("id,pnl", { count: "exact" }).eq("user_id", uid).in("status", ACTIVE_STATUSES),
-      sb.from("subscriptions").select("plan_code,status,current_period_ends_at").eq("user_id", uid).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      sb
+        .from("orders")
+        .select("id,pnl", { count: "exact" })
+        .eq("user_id", uid)
+        .in("status", ACTIVE_STATUSES),
+      sb
+        .from("subscriptions")
+        .select("plan_code,status,current_period_ends_at")
+        .eq("user_id", uid)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
       sb.from("user_balances").select("*").eq("user_id", uid).maybeSingle(),
     ]);
     const openPnl = (active.data ?? []).reduce((s, r) => s + Number(r.pnl ?? 0), 0);
@@ -839,9 +866,26 @@ export const getBilling = createServerFn({ method: "GET" })
     const sb = context.supabase;
     const uid = context.userId;
     const [sub, inv, plans] = await Promise.all([
-      sb.from("subscriptions").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      sb.from("invoices").select("id,invoice_number,amount,currency,status,issued_at,due_at,paid_at").eq("user_id", uid).order("issued_at", { ascending: false }).limit(50),
-      sb.from("plans").select("code,name,description,monthly_price,yearly_price,max_open_positions,max_daily_trades").eq("is_active", true).order("sort_order"),
+      sb
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", uid)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      sb
+        .from("invoices")
+        .select("id,invoice_number,amount,currency,status,issued_at,due_at,paid_at")
+        .eq("user_id", uid)
+        .order("issued_at", { ascending: false })
+        .limit(50),
+      sb
+        .from("plans")
+        .select(
+          "code,name,description,monthly_price,yearly_price,max_open_positions,max_daily_trades",
+        )
+        .eq("is_active", true)
+        .order("sort_order"),
     ]);
     return { subscription: sub.data, invoices: inv.data ?? [], plans: plans.data ?? [] };
   });
@@ -854,7 +898,13 @@ export const getReferrals = createServerFn({ method: "GET" })
     const uid = context.userId;
     const aff = await sb.from("affiliates").select("*").eq("user_id", uid).maybeSingle();
     if (aff.error) throw new Error(aff.error.message);
-    let commissions: Array<{ id: string; amount: number; level: number; status: string; created_at: string }> = [];
+    let commissions: Array<{
+      id: string;
+      amount: number;
+      level: number;
+      status: string;
+      created_at: string;
+    }> = [];
     if (aff.data) {
       const cm = await sb
         .from("affiliate_commissions")
@@ -946,4 +996,3 @@ export const upsertMyNotificationPrefs = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
-

@@ -2,17 +2,22 @@
 // Walks historical candles and simulates entry → TP/SL/trail/timeout exits.
 
 import { evaluateRisk } from "@/lib/risk/riskEngine";
-import { fetchCandles, intervalForRange, type Candle, type Interval } from "./historicalData.server";
+import {
+  fetchCandles,
+  intervalForRange,
+  type Candle,
+  type Interval,
+} from "./historicalData.server";
 
 export type BTSignal = {
   id?: string;
-  symbol: string;          // e.g. BTCUSDT
+  symbol: string; // e.g. BTCUSDT
   side: "long" | "short";
   entry: number;
   stopLoss: number | null;
-  takeProfit: number[];    // ladder
+  takeProfit: number[]; // ladder
   leverage: number | null;
-  ts: number;              // signal time in ms
+  ts: number; // signal time in ms
 };
 
 export type BTTrade = {
@@ -46,7 +51,7 @@ export type BTSummary = {
 
 export type BTConfig = {
   initial_balance: number;
-  fee_pct: number;             // per side, %
+  fee_pct: number; // per side, %
   risk_per_trade_percent?: number;
   max_trade_size_percent?: number;
   max_open_positions?: number;
@@ -116,14 +121,17 @@ export async function runBacktest(
   const interval: Interval = intervalForRange(days);
 
   // Track open positions count for risk engine context
-  let openPositions = 0;
+  const openPositions = 0;
   let consecutiveLosses = 0;
   let consecutiveWins = 0;
   const recent: boolean[] = []; // true=win
 
   for (let i = 0; i < sigs.length; i++) {
     const sig = sigs[i];
-    const recentWinRate = recent.length >= 5 ? recent.slice(-20).filter(Boolean).length / Math.min(recent.length, 20) : null;
+    const recentWinRate =
+      recent.length >= 5
+        ? recent.slice(-20).filter(Boolean).length / Math.min(recent.length, 20)
+        : null;
 
     const decision = evaluateRisk({
       balance,
@@ -214,15 +222,7 @@ export async function runBacktest(
       continue;
     }
 
-    const exit = resolveExit(
-      candles,
-      0,
-      sig.side,
-      sig.entry,
-      sig.stopLoss,
-      sig.takeProfit,
-      winEnd,
-    );
+    const exit = resolveExit(candles, 0, sig.side, sig.entry, sig.stopLoss, sig.takeProfit, winEnd);
 
     const fee = (config.fee_pct / 100) * decision.notional * 2; // entry + exit
     const direction = sig.side === "long" ? 1 : -1;
@@ -295,9 +295,15 @@ export async function runBacktest(
 
 function emptySummary(balance: number): BTSummary {
   return {
-    total_trades: 0, wins: 0, losses: 0, win_rate: 0,
-    total_pnl: 0, total_pnl_pct: 0, max_drawdown_pct: 0,
-    profit_factor: 0, ending_balance: balance,
+    total_trades: 0,
+    wins: 0,
+    losses: 0,
+    win_rate: 0,
+    total_pnl: 0,
+    total_pnl_pct: 0,
+    max_drawdown_pct: 0,
+    profit_factor: 0,
+    ending_balance: balance,
     equity_curve: [{ t: Date.now(), balance }],
   };
 }

@@ -1,12 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  Check,
-  X,
-  ArrowRight,
-  Zap,
-  HelpCircle,
-  Mail,
-} from "lucide-react";
+import { Check, X, ArrowRight, Zap, HelpCircle, Mail } from "lucide-react";
 import { PublicNav, PublicFooter } from "@/components/PublicNav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,8 +32,7 @@ export const Route = createFileRoute("/pricing")({
       { property: "og:title", content: "Pricing — Hermes" },
       {
         property: "og:description",
-        content:
-          "Start free, upgrade to Pro for $49/month, or build a custom Enterprise plan.",
+        content: "Start free, upgrade to Pro for $49/month, or build a custom Enterprise plan.",
       },
     ],
   }),
@@ -69,8 +61,7 @@ const tiers = [
     name: "Pro",
     price: "$49",
     period: "/month",
-    description:
-      "Go live with AI-powered parsing, full risk automation, and server-side exits.",
+    description: "Go live with AI-powered parsing, full risk automation, and server-side exits.",
     features: [
       "Live + paper trading",
       "Up to 3 exchange accounts",
@@ -89,8 +80,7 @@ const tiers = [
     name: "Enterprise",
     price: "Custom",
     period: "",
-    description:
-      "For teams and institutions that need scale, control, and compliance.",
+    description: "For teams and institutions that need scale, control, and compliance.",
     features: [
       "Unlimited exchange accounts & channels",
       "Multi-user team workspace with roles",
@@ -108,7 +98,12 @@ const tiers = [
 
 type CellValue = string | boolean;
 
-const comparisonRows: { feature: string; free: CellValue; pro: CellValue; enterprise: CellValue }[] = [
+const comparisonRows: {
+  feature: string;
+  free: CellValue;
+  pro: CellValue;
+  enterprise: CellValue;
+}[] = [
   { feature: "Trading mode", free: "Paper only", pro: "Paper + Live", enterprise: "Paper + Live" },
   { feature: "Exchange accounts", free: "1", pro: "Up to 3", enterprise: "Unlimited" },
   { feature: "Signal channels", free: "1", pro: "Unlimited", enterprise: "Unlimited" },
@@ -164,9 +159,8 @@ function Page() {
             Pay for automation, <span className="text-primary">not for hype</span>.
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground">
-            Start with free paper trading. Upgrade to Pro when you're ready to
-            go live. Every paid plan includes a 7-day free trial — no credit
-            card required.
+            Start with free paper trading. Upgrade to Pro when you're ready to go live. Every paid
+            plan includes a 7-day free trial — no credit card required.
           </p>
         </div>
       </section>
@@ -184,19 +178,13 @@ function Page() {
               }
             >
               {tier.popular && (
-                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  Most popular
-                </Badge>
+                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">Most popular</Badge>
               )}
               <CardHeader>
                 <CardTitle>{tier.name}</CardTitle>
                 <div className="mt-2 flex items-baseline gap-1">
-                  <span className="text-4xl font-semibold tracking-tight">
-                    {tier.price}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {tier.period}
-                  </span>
+                  <span className="text-4xl font-semibold tracking-tight">{tier.price}</span>
+                  <span className="text-sm text-muted-foreground">{tier.period}</span>
                 </div>
                 <CardDescription>{tier.description}</CardDescription>
               </CardHeader>
@@ -219,10 +207,7 @@ function Page() {
                   </Button>
                 ) : (
                   <Button asChild className="w-full">
-                    <Link
-                      to="/auth"
-                      search={{ mode: "signup" } as never}
-                    >
+                    <Link to="/auth" search={{ mode: "signup" } as never}>
                       {tier.cta}
                       <ArrowRight className="h-4 w-4" />
                     </Link>
@@ -233,20 +218,17 @@ function Page() {
           ))}
         </div>
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Prices in USD, excluding applicable taxes. Annual billing available —
-          save 20% by choosing yearly when you upgrade.
+          Prices in USD, excluding applicable taxes. Annual billing available — save 20% by choosing
+          yearly when you upgrade.
         </p>
       </section>
 
       {/* Comparison table */}
       <section className="mx-auto max-w-5xl px-6 pb-20">
         <div className="text-center">
-          <h2 className="text-3xl font-semibold tracking-tight">
-            Compare plans
-          </h2>
+          <h2 className="text-3xl font-semibold tracking-tight">Compare plans</h2>
           <p className="mt-3 text-muted-foreground">
-            Everything you need to pick the right tier — upgrade or downgrade
-            at any time.
+            Everything you need to pick the right tier — upgrade or downgrade at any time.
           </p>
         </div>
         <div className="mt-8 overflow-hidden rounded-xl border border-border">
@@ -284,9 +266,7 @@ function Page() {
         <div className="rounded-2xl border border-border bg-card p-8">
           <div className="flex items-center gap-3">
             <HelpCircle className="h-6 w-6 text-primary" />
-            <h2 className="text-2xl font-semibold tracking-tight">
-              Still deciding?
-            </h2>
+            <h2 className="text-2xl font-semibold tracking-tight">Still deciding?</h2>
           </div>
           <div className="mt-6 space-y-6">
             {faqTeasers.map((item) => (

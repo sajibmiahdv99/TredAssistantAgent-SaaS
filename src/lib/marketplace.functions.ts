@@ -52,7 +52,13 @@ async function computeStatsForSources(sourceIds: string[]): Promise<Record<strin
 
   // Orders joined via signal_id -> those signals. Terminal statuses; only rows with pnl count as trades.
   const signalIds = Array.from(signalToSource.keys());
-  let orders: Array<{ signal_id: string | null; status: string; pnl: number | string | null; updated_at: string | null; created_at: string | null }> = [];
+  let orders: Array<{
+    signal_id: string | null;
+    status: string;
+    pnl: number | string | null;
+    updated_at: string | null;
+    created_at: string | null;
+  }> = [];
   if (signalIds.length > 0) {
     const { data, error } = await supabaseAdmin
       .from("orders")
@@ -101,12 +107,24 @@ async function computeStatsForSources(sourceIds: string[]): Promise<Record<strin
     // Note: REJECTED/CANCELLED intentionally not counted as trades (kept for future audit surfaces).
     void REJECTED;
 
-    let wins = 0, losses = 0, totalPnl = 0, sumWins = 0, sumLosses = 0;
-    let peak = 0, cumulative = 0, maxDrawdown = 0, maxPeakSoFar = 0;
+    let wins = 0,
+      losses = 0,
+      totalPnl = 0,
+      sumWins = 0,
+      sumLosses = 0;
+    let peak = 0,
+      cumulative = 0,
+      maxDrawdown = 0,
+      maxPeakSoFar = 0;
     for (const t of closed) {
       totalPnl += t.pnl;
-      if (t.pnl > 0) { wins++; sumWins += t.pnl; }
-      else if (t.pnl < 0) { losses++; sumLosses += Math.abs(t.pnl); }
+      if (t.pnl > 0) {
+        wins++;
+        sumWins += t.pnl;
+      } else if (t.pnl < 0) {
+        losses++;
+        sumLosses += Math.abs(t.pnl);
+      }
       cumulative += t.pnl;
       if (cumulative > peak) peak = cumulative;
       if (peak > maxPeakSoFar) maxPeakSoFar = peak;
@@ -120,12 +138,15 @@ async function computeStatsForSources(sourceIds: string[]): Promise<Record<strin
     // Drawdown as percentage of peak equity high; if no positive peak yet, null.
     const maxDrawdownPct = maxPeakSoFar > 0 ? (maxDrawdown / maxPeakSoFar) * 100 : null;
 
-    const dates = sigs.map((s) => (s.created_at ? Date.parse(s.created_at) : 0)).filter((n) => n > 0);
+    const dates = sigs
+      .map((s) => (s.created_at ? Date.parse(s.created_at) : 0))
+      .filter((n) => n > 0);
     const firstAt = dates.length ? new Date(Math.min(...dates)).toISOString() : null;
     const lastAt = dates.length ? new Date(Math.max(...dates)).toISOString() : null;
-    const activeDays = firstAt && lastAt
-      ? Math.max(1, Math.ceil((Date.parse(lastAt) - Date.parse(firstAt)) / (1000 * 60 * 60 * 24)))
-      : 0;
+    const activeDays =
+      firstAt && lastAt
+        ? Math.max(1, Math.ceil((Date.parse(lastAt) - Date.parse(firstAt)) / (1000 * 60 * 60 * 24)))
+        : 0;
 
     out[sid] = {
       source_id: sid,
@@ -167,11 +188,13 @@ function shortId(): string {
 export const publishChannelAsStrategy = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({
-      channelId: z.string().uuid(),
-      name: z.string().trim().min(1).max(120),
-      description: z.string().trim().max(1000).optional().default(""),
-    }).parse(d),
+    z
+      .object({
+        channelId: z.string().uuid(),
+        name: z.string().trim().min(1).max(120),
+        description: z.string().trim().max(1000).optional().default(""),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     // Verify caller owns the channel and read its type.
@@ -272,9 +295,6 @@ export const unpublishStrategy = createServerFn({ method: "POST" })
 // Subscribe / unsubscribe
 // ============================================================================
 
-
-
-
 export const subscribeToStrategy = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ sourceId: z.string().uuid() }).parse(d))
@@ -287,7 +307,8 @@ export const subscribeToStrategy = createServerFn({ method: "POST" })
       .maybeSingle();
     if (sErr) throw new Error(sErr.message);
     if (!src || !src.is_published) throw new Error("Strategy not available");
-    if (src.owner_user_id === context.userId) throw new Error("You can't subscribe to your own strategy");
+    if (src.owner_user_id === context.userId)
+      throw new Error("You can't subscribe to your own strategy");
 
     // Fetch existing allowed_source_ids (may be null if the row doesn't exist).
     const { data: existing } = await context.supabase
@@ -295,15 +316,13 @@ export const subscribeToStrategy = createServerFn({ method: "POST" })
       .select("allowed_source_ids")
       .eq("user_id", context.userId)
       .maybeSingle();
-    const current = ((existing as { allowed_source_ids: string[] | null } | null)?.allowed_source_ids ?? []) as string[];
+    const current = ((existing as { allowed_source_ids: string[] | null } | null)
+      ?.allowed_source_ids ?? []) as string[];
     const next = Array.from(new Set([...current, data.sourceId]));
 
     const { error: uErr } = await context.supabase
       .from("user_risk_settings")
-      .upsert(
-        { user_id: context.userId, allowed_source_ids: next },
-        { onConflict: "user_id" },
-      );
+      .upsert({ user_id: context.userId, allowed_source_ids: next }, { onConflict: "user_id" });
     if (uErr) throw new Error(uErr.message);
     return { ok: true };
   });
@@ -317,14 +336,12 @@ export const unsubscribeFromStrategy = createServerFn({ method: "POST" })
       .select("allowed_source_ids")
       .eq("user_id", context.userId)
       .maybeSingle();
-    const current = (((existing as { allowed_source_ids: string[] | null } | null)?.allowed_source_ids) ?? []) as string[];
+    const current = ((existing as { allowed_source_ids: string[] | null } | null)
+      ?.allowed_source_ids ?? []) as string[];
     const next = current.filter((id) => id !== data.sourceId);
     const { error } = await context.supabase
       .from("user_risk_settings")
-      .upsert(
-        { user_id: context.userId, allowed_source_ids: next },
-        { onConflict: "user_id" },
-      );
+      .upsert({ user_id: context.userId, allowed_source_ids: next }, { onConflict: "user_id" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -364,7 +381,9 @@ export const listPublishedStrategies = createServerFn({ method: "GET" })
     const stats = await computeStatsForSources(sourceIds);
 
     // Owner display names (public: only full_name, never email).
-    const ownerIds = Array.from(new Set(rows.map((r) => r.owner_user_id).filter(Boolean))) as string[];
+    const ownerIds = Array.from(
+      new Set(rows.map((r) => r.owner_user_id).filter(Boolean)),
+    ) as string[];
     const ownerNames = new Map<string, string>();
     if (ownerIds.length > 0) {
       const { data: profiles } = await supabaseAdmin
@@ -385,7 +404,9 @@ export const listPublishedStrategies = createServerFn({ method: "GET" })
       description: r.description,
       source_type: r.source_type,
       owner_user_id: r.owner_user_id,
-      owner_display_name: r.owner_user_id ? (ownerNames.get(r.owner_user_id) ?? "Trader") : "Hermes",
+      owner_display_name: r.owner_user_id
+        ? (ownerNames.get(r.owner_user_id) ?? "Trader")
+        : "Hermes",
       published_at: r.published_at,
       is_owner: r.owner_user_id === context.userId,
       is_subscribed: mySubs.has(r.id),
@@ -428,7 +449,8 @@ async function getMySubscribedIds(userId: string): Promise<Set<string>> {
     .select("allowed_source_ids")
     .eq("user_id", userId)
     .maybeSingle();
-  const arr = ((data as { allowed_source_ids: string[] | null } | null)?.allowed_source_ids ?? []) as string[];
+  const arr = ((data as { allowed_source_ids: string[] | null } | null)?.allowed_source_ids ??
+    []) as string[];
   return new Set(arr);
 }
 
