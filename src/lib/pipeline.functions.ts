@@ -85,8 +85,9 @@ export async function fanOutToSubscribers(params: {
   parsed: ParsedSignal;
   sourceId: string;
   excludeUserId?: string;
+  whaleAdjustment?: { multiplier: number; block: boolean; reason?: string };
 }): Promise<{ queued: number; rejected: number }> {
-  const { signalId, parsed, sourceId, excludeUserId } = params;
+  const { signalId, parsed, sourceId, excludeUserId, whaleAdjustment } = params;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   if (!parsed.symbol || !parsed.side || parsed.entry == null) {
@@ -219,6 +220,32 @@ export async function fanOutToSubscribers(params: {
       continue;
     }
 
+    // Apply whale-trade adjustment (fetched once per signal upstream).
+    let finalQty = decision.quantity;
+    if (whaleAdjustment?.multiplier && whaleAdjustment.multiplier !== 1) {
+      finalQty = Math.max(0, decision.quantity * whaleAdjustment.multiplier);
+    }
+    if (whaleAdjustment?.block) {
+      await supabaseAdmin.from("trade_logs").insert({
+        user_id: s.user_id,
+        action: "risk_rejected",
+        details: {
+          reason: whaleAdjustment.reason ?? "whale distribution block",
+          signal_id: signalId,
+          adaptive,
+        } as never,
+      });
+      rejected++;
+      continue;
+    }
+    if (whaleAdjustment?.reason) {
+      await supabaseAdmin.from("trade_logs").insert({
+        user_id: s.user_id,
+        action: "whale_adjustment",
+        details: { reason: whaleAdjustment.reason, signal_id: signalId } as never,
+      });
+    }
+
     // Pick the user's first active exchange account.
     const { data: acct } = await supabaseAdmin
       .from("exchange_accounts")
@@ -244,7 +271,7 @@ export async function fanOutToSubscribers(params: {
     const ladder = buildEntryLadder({
       entry: parsed.entry,
       side: parsed.side,
-      totalQty: decision.quantity,
+      totalQty: finalQty,
       mode: (s as { entry_mode?: string | null }).entry_mode,
       levels: (s as { entry_levels_count?: number | null }).entry_levels_count,
       rangePercent: (s as { entry_range_percent?: number | string | null }).entry_range_percent as
@@ -327,10 +354,29 @@ export async function ingestSignalForSource(
     return { signalId: signalRow.id, queued: 0, rejected: 0 };
   }
 
+  // Whale-trade market context — fetched once per signal (never throws).
+  let whaleAdjustment: { multiplier: number; block: boolean; reason?: string } | undefined;
+  try {
+    const { fetchWhaleSignal, whaleRiskAdjustment } = await import("@/lib/risk/whaleWatch.server");
+    const sig = await fetchWhaleSignal(parsed.symbol, {
+      apiKey: process.env.COINLOBSTER_API_KEY || undefined,
+    });
+    whaleAdjustment = whaleRiskAdjustment(sig);
+    if (sig.ok && sig.buyPressure != null) {
+      await supabaseAdmin
+        .from("signals")
+        .update({ status: "whale_checked" })
+        .eq("id", signalRow.id);
+    }
+  } catch {
+    whaleAdjustment = undefined; // never block trading on whale-feed failure
+  }
+
   const { queued, rejected } = await fanOutToSubscribers({
     signalId: signalRow.id,
     parsed,
     sourceId,
+    whaleAdjustment,
   });
 
   await supabaseAdmin.from("signals").update({ status: "dispatched" }).eq("id", signalRow.id);
