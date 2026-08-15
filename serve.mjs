@@ -38,9 +38,7 @@ const MIME = {
 };
 
 // Load the built server handler
-const { default: serverHandler } = await import(
-  join(__dirname, "dist/server/server.js")
-);
+const { default: serverHandler } = await import(join(__dirname, "dist/server/server.js"));
 
 /** Serve a static file from dist/client, with path traversal protection. */
 async function serveStatic(urlPath, res) {

@@ -92,6 +92,74 @@ export const deleteBacktest = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ============ CSV Export ============
+
+function csvEscape(v: unknown): string {
+  if (v == null) return "";
+  const s = String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/** Export a backtest run (summary + trades) as CSV. Returns the CSV text. */
+export const exportBacktestCsv = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const [run, trades] = await Promise.all([
+      context.supabase.from("backtest_runs").select("*").eq("id", data.id).single(),
+      context.supabase
+        .from("backtest_trades")
+        .select("*")
+        .eq("run_id", data.id)
+        .order("entry_time"),
+    ]);
+    if (run.error) throw new Error(run.error.message);
+
+    const summary = (run.data.summary ?? {}) as Record<string, unknown>;
+    const lines: string[] = [];
+
+    // Header block
+    lines.push(`Backtest,${csvEscape(run.data.name)}`);
+    lines.push(`Status,${csvEscape(run.data.status)}`);
+    lines.push(
+      `Range,${csvEscape(String(run.data.start_date ?? ""))} to ${csvEscape(String(run.data.end_date ?? ""))}`,
+    );
+    lines.push(`Initial Balance,${csvEscape(run.data.initial_balance)}`);
+    lines.push(`Fee %,${csvEscape(run.data.fee_pct)}`);
+    for (const [k, v] of Object.entries(summary)) {
+      if (typeof v === "number" || typeof v === "string") {
+        lines.push(`Summary ${csvEscape(k)},${csvEscape(v)}`);
+      }
+    }
+    lines.push("");
+
+    // Trades block
+    const cols = [
+      "id",
+      "entry_time",
+      "exit_time",
+      "symbol",
+      "side",
+      "entry_price",
+      "exit_price",
+      "quantity",
+      "pnl",
+      "pnl_pct",
+      "fees",
+      "reason",
+      "duration_hours",
+    ];
+    lines.push(cols.map(csvEscape).join(","));
+    for (const t of trades.data ?? []) {
+      lines.push(cols.map((c) => csvEscape((t as Record<string, unknown>)[c])).join(","));
+    }
+
+    return {
+      csv: lines.join("\n"),
+      filename: `backtest-${run.data.name}-${data.id.slice(0, 8)}.csv`,
+    };
+  });
+
 // ============ Risk Optimizer ============
 
 export type BTSummaryForScore = {
