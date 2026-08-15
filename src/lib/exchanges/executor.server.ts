@@ -871,6 +871,57 @@ export function isExchangeExecutable(code: string): boolean {
 
 // ---- Public ticker (no auth) ---------------------------------------------
 // Returns last price for a USD-M perp pair. Used by position monitor.
+// Binance + Bybit direct; any other exchange falls back to CoinGecko's
+// simple/price endpoint (free, no key) so monitor hooks still get a price.
+
+const COINGECKO_ID: Record<string, string> = {
+  BTC: "bitcoin",
+  ETH: "ethereum",
+  SOL: "solana",
+  BNB: "binancecoin",
+  XRP: "ripple",
+  DOGE: "dogecoin",
+  ADA: "cardano",
+  AVAX: "avalanche-2",
+  DOT: "polkadot",
+  LINK: "chainlink",
+  LTC: "litecoin",
+  TRX: "tron",
+  MATIC: "matic-network",
+  POL: "matic-network",
+  TON: "the-open-network",
+  SHIB: "shiba-inu",
+  UNI: "uniswap",
+  ATOM: "cosmos",
+  XLM: "stellar",
+  NEAR: "near",
+  APT: "aptos",
+  ARB: "arbitrum",
+  OP: "optimism",
+  SUI: "sui",
+  INJ: "injective-protocol",
+  FET: "fetch-ai",
+  FIL: "filecoin",
+  AAVE: "aave",
+  MKR: "maker",
+  PEPE: "pepe",
+  WIF: "dogwifcoin",
+  BONK: "bonk",
+  SEI: "sei-network",
+  TIA: "celestia",
+  JUP: "jupiter-exchange-solana",
+  PYTH: "pyth-network",
+  ENA: "ethena",
+  ONDO: "ondo-finance",
+  WLD: "worldcoin-wld",
+};
+
+function baseAssetOf(symbol: string): string {
+  const s = symbol.toUpperCase();
+  const m = /^([A-Z0-9]+)(USDT|USDC|BUSD|FDUSD|TUSD|USD|BTC|ETH|EUR|JPY)$/.exec(s);
+  return m ? m[1] : s;
+}
+
 export async function fetchExchangeTicker(
   exchangeCode: string,
   symbol: string,
@@ -895,7 +946,16 @@ export async function fetchExchangeTicker(
       const n = p ? Number(p) : NaN;
       return Number.isFinite(n) ? n : null;
     }
-    return null;
+    // CoinGecko fallback for every other exchange (okx/kucoin/mexc/bridge…)
+    const base = baseAssetOf(symbol);
+    const id = COINGECKO_ID[base] ?? base.toLowerCase();
+    const res = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(id)}&vs_currencies=usd`,
+    );
+    if (!res.ok) return null;
+    const j = (await res.json()) as Record<string, { usd?: number }>;
+    const n = j[id]?.usd;
+    return typeof n === "number" && Number.isFinite(n) && n > 0 ? n : null;
   } catch {
     return null;
   }

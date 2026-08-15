@@ -52,6 +52,7 @@ import { Route as AuthenticatedAppSupportRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAppTradeHistoryRouteImport } from './routes/_authenticated/app.trade-history'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicPaymentWebhookRouteImport } from './routes/api/public/payment-webhook'
+import { Route as ApiPublicSignupHookRouteImport } from './routes/api/public/signup-hook'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram-webhook'
 import { Route as ApiPublicHooksDispatchNotificationsRouteImport } from './routes/api/public/hooks/dispatch-notifications'
@@ -299,6 +300,11 @@ const ApiPublicPaymentWebhookRoute = ApiPublicPaymentWebhookRouteImport.update({
   path: '/api/public/payment-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSignupHookRoute = ApiPublicSignupHookRouteImport.update({
+  id: '/api/public/signup-hook',
+  path: '/api/public/signup-hook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   id: '/api/public/stripe-webhook',
   path: '/api/public/stripe-webhook',
@@ -405,6 +411,7 @@ export interface FileRoutesByFullPath {
   '/app/trade-history': typeof AuthenticatedAppTradeHistoryRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/payment-webhook': typeof ApiPublicPaymentWebhookRoute
+  '/api/public/signup-hook': typeof ApiPublicSignupHookRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -458,6 +465,7 @@ export interface FileRoutesByTo {
   '/app/trade-history': typeof AuthenticatedAppTradeHistoryRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/payment-webhook': typeof ApiPublicPaymentWebhookRoute
+  '/api/public/signup-hook': typeof ApiPublicSignupHookRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -515,6 +523,7 @@ export interface FileRoutesById {
   '/_authenticated/app/trade-history': typeof AuthenticatedAppTradeHistoryRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/payment-webhook': typeof ApiPublicPaymentWebhookRoute
+  '/api/public/signup-hook': typeof ApiPublicSignupHookRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -572,6 +581,7 @@ export interface FileRouteTypes {
     | '/app/trade-history'
     | '/api/public/health'
     | '/api/public/payment-webhook'
+    | '/api/public/signup-hook'
     | '/api/public/stripe-webhook'
     | '/api/public/telegram-webhook'
     | '/admin/'
@@ -625,6 +635,7 @@ export interface FileRouteTypes {
     | '/app/trade-history'
     | '/api/public/health'
     | '/api/public/payment-webhook'
+    | '/api/public/signup-hook'
     | '/api/public/stripe-webhook'
     | '/api/public/telegram-webhook'
     | '/admin'
@@ -681,6 +692,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/trade-history'
     | '/api/public/health'
     | '/api/public/payment-webhook'
+    | '/api/public/signup-hook'
     | '/api/public/stripe-webhook'
     | '/api/public/telegram-webhook'
     | '/_authenticated/admin/'
@@ -708,6 +720,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicPaymentWebhookRoute: typeof ApiPublicPaymentWebhookRoute
+  ApiPublicSignupHookRoute: typeof ApiPublicSignupHookRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
   ApiPublicHooksDispatchNotificationsRoute: typeof ApiPublicHooksDispatchNotificationsRoute
@@ -1024,6 +1037,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/signup-hook': {
+      id: '/api/public/signup-hook'
+      path: '/api/public/signup-hook'
+      fullPath: '/api/public/signup-hook'
+      preLoaderRoute: typeof ApiPublicSignupHookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/stripe-webhook': {
       id: '/api/public/stripe-webhook'
       path: '/api/public/stripe-webhook'
@@ -1207,6 +1227,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicPaymentWebhookRoute: ApiPublicPaymentWebhookRoute,
+  ApiPublicSignupHookRoute: ApiPublicSignupHookRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
   ApiPublicHooksDispatchNotificationsRoute:
