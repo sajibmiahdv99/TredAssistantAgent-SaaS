@@ -3,6 +3,16 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 
+// Start the real-time WebSocket price feed at server boot (Node runtime only).
+// It runs in the background and is completely optional — if it fails, all
+// price lookups fall back to REST. Must not throw at boot.
+try {
+  const { startWsPriceFeed } = await import("./lib/exchanges/wsPriceFeed.server");
+  startWsPriceFeed();
+} catch (e) {
+  console.error("[ws-price-feed] failed to start:", e);
+}
+
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };

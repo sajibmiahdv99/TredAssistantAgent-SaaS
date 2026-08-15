@@ -31,8 +31,9 @@ export type CancelOrderResult = { ok: boolean };
 export type FetchOrderResult = PlaceOrderResult;
 
 // ---- Price feed (multi-source failover) ------------------------------------
-// Primary: Binance public ticker. Fallbacks: CoinGecko simple/price (no key),
-// then CoinCap (no key). Cached up to 10s so burst calls hit the API once.
+// Primary: WebSocket real-time feed (Binance + Bybit public streams, no key).
+// Fallbacks: Binance REST ticker, CoinGecko simple/price, then CoinCap.
+// REST results cached up to 10s so burst calls hit the API once.
 
 let _priceCache: { at: number; map: Record<string, number> } | null = null;
 
@@ -135,10 +136,26 @@ async function coinCapPrice(symbol: string): Promise<number | null> {
 
 async function getPrice(symbol: string): Promise<number | null> {
   const now = Date.now();
+
+  // 1. WebSocket feed first — freshest, no HTTP.
+  try {
+    const { getWsPrice } = await import("./wsPriceFeed.server");
+    const wsPrice = getWsPrice(symbol);
+    if (wsPrice != null) {
+      if (!_priceCache) _priceCache = { at: now, map: {} };
+      _priceCache.map[symbol] = wsPrice;
+      _priceCache.at = now;
+      return wsPrice;
+    }
+  } catch {
+    // ws module unavailable — fall through to REST
+  }
+
+  // 2. REST cache (10s window)
   if (_priceCache && now - _priceCache.at < 10_000) {
     return _priceCache.map[symbol] ?? null;
   }
-  // Try sources in order; first hit wins.
+  // 3. Try REST sources in order; first hit wins.
   const price =
     (await binancePrice(symbol)) ?? (await coinGeckoPrice(symbol)) ?? (await coinCapPrice(symbol));
   if (price != null) {
