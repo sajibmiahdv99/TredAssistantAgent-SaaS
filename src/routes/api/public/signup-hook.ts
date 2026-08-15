@@ -107,6 +107,11 @@ export const Route = createFileRoute("/api/public/signup-hook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        // Rate limit: 30 signup-hook calls/min/IP (brute-force protection).
+        const { rateLimitMiddleware } = await import("@/lib/rate-limit");
+        const limited = rateLimitMiddleware(request, { windowMs: 60_000, maxRequests: 30 });
+        if (limited) return limited;
+
         let body: { user?: { email?: string }; metadata?: { ip_address?: string } } = {};
         try {
           body = (await request.json()) as typeof body;
