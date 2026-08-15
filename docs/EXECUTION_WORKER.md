@@ -107,3 +107,26 @@ loop forever:
 A reference Python implementation lives in the original Hermes repo under
 `backend/services/mt5_bridge.py`; it can be ported to call the two RPCs
 above instead of writing to the Express API.
+
+## Real-time user-data streams (v2)
+
+The worker also opens **private WebSocket user-data streams** for active
+Binance/Bybit accounts (`worker/userDataStreams.ts`):
+
+- Binance Futures: `POST /fapi/v1/listenKey` → `wss://fstream.binance.com/ws/<lk>`
+  (listenKey renewed every 30 min; reconnect with 5s backoff)
+- Bybit V5: `POST /v5/user-token/create` HMAC auth → `wss://stream.bybit.com/v5/private`
+  (order topic; reconnect with 10s backoff)
+- On `ORDER_TRADE_UPDATE` / `order` events the worker updates `orders`
+  immediately (status, fill price, quantity) — no need to wait for the
+  next 5s poll tick.
+- **Best-effort:** stream failure never blocks trading — the REST poll loop
+  remains the source of truth and the fallback.
+- OKX / KuCoin / MEXC / paper / bridge accounts still use REST polling
+  (their private WS requires venue-specific token exchanges — future work).
+
+## Pitfalls
+
+- `tsx` requires explicit `.ts` extensions on relative imports.
+- Order events carry `client_order_id` (we set it when placing) — matching on
+  it avoids ambiguity when several orders share a symbol.

@@ -326,6 +326,19 @@ async function tick(): Promise<void> {
 
 async function main(): Promise<void> {
   log("boot", `worker starting (interval=${INTERVAL_MS}ms, claim_limit=${CLAIM_LIMIT})`);
+
+  // Start private user-data WebSocket streams (instant fill updates for
+  // Binance/Bybit accounts). Best-effort — REST polling stays the fallback.
+  try {
+    const { startUserDataStreams } = await import("./userDataStreams.ts");
+    await startUserDataStreams();
+  } catch (e) {
+    log(
+      "boot",
+      `user-data streams unavailable (polling only): ${e instanceof Error ? e.message : String(e)}`,
+    );
+  }
+
   // Immediate first tick, then loop.
   await tick();
   if (process.env.WORKER_DRY_RUN === "1") {

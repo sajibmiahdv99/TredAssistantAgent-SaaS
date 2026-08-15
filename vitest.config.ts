@@ -6,7 +6,7 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "worker/**/*.test.ts"],
     exclude: ["node_modules", "dist", "src/components/ui/**"],
     coverage: {
       provider: "v8",
