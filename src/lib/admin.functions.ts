@@ -645,3 +645,97 @@ export const adminDeleteBlockedNetwork = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ============ Telegram (admin) ============
+
+export type AdminTelegramAccount = {
+  id: string;
+  user_id: string;
+  label: string;
+  status: string;
+  masked_phone: string | null;
+  created_at: string;
+  owner_email?: string | null;
+};
+
+export const adminListTelegramAccounts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("telegram_accounts")
+      .select("id,user_id,label,status,masked_phone,created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) throw new Error(error.message);
+
+    // Attach owner emails
+    const userIds = [...new Set((data ?? []).map((r) => r.user_id))];
+    const { data: profiles } = userIds.length
+      ? await supabaseAdmin.from("profiles").select("id,email").in("id", userIds)
+      : { data: [] };
+    const emailByUser = new Map((profiles ?? []).map((p) => [p.id, p.email]));
+    return (data ?? []).map((r) => ({
+      ...r,
+      owner_email: emailByUser.get(r.user_id) ?? null,
+    })) as AdminTelegramAccount[];
+  });
+
+export type AdminSignalChannel = {
+  id: string;
+  user_id: string;
+  telegram_account_id: string | null;
+  name: string;
+  username: string | null;
+  tg_chat_id: number | null;
+  is_signal_source: boolean;
+  is_active: boolean;
+  win_rate: number | null;
+  signals_count: number;
+  last_signal_at: string | null;
+  created_at: string;
+  owner_email?: string | null;
+};
+
+export const adminListSignalChannels = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("personal_signal_channels")
+      .select(
+        "id,user_id,telegram_account_id,name,username,tg_chat_id,is_signal_source,is_active,win_rate,signals_count,last_signal_at,created_at",
+      )
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error(error.message);
+
+    const userIds = [...new Set((data ?? []).map((r) => r.user_id))];
+    const { data: profiles } = userIds.length
+      ? await supabaseAdmin.from("profiles").select("id,email").in("id", userIds)
+      : { data: [] };
+    const emailByUser = new Map((profiles ?? []).map((p) => [p.id, p.email]));
+    return (data ?? []).map((r) => ({
+      ...r,
+      owner_email: emailByUser.get(r.user_id) ?? null,
+    })) as AdminSignalChannel[];
+  });
+
+/** Admin-only toggle: mark a user's channel as a signal source (or remove it). */
+export const adminToggleChannelSignalSource = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ id: z.string().uuid(), is_signal_source: z.boolean() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("personal_signal_channels")
+      .update({ is_signal_source: data.is_signal_source })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

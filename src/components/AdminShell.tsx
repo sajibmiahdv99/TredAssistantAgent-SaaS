@@ -19,6 +19,7 @@ import {
   X,
   LogOut,
   Activity,
+  Send,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BRAND } from "@/lib/brand";
@@ -31,6 +32,7 @@ const adminNav: Nav[] = [
   { label: "Subscriptions", to: "/admin/subscriptions", icon: CreditCard },
   { label: "Payments", to: "/admin/payments", icon: DollarSign },
   { label: "Sources", to: "/admin/sources", icon: Radio },
+  { label: "Telegram", to: "/admin/telegram", icon: Send },
   { label: "Parsed Signals", to: "/admin/parsed-signals", icon: FileCheck },
   { label: "Trades", to: "/admin/trades", icon: TrendingUp },
   { label: "Risk Templates", to: "/admin/risk-templates", icon: ShieldCheck },
