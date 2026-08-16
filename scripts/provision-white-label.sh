@@ -31,7 +31,7 @@ SB_SVC="${5:?missing SUPABASE_SERVICE_ROLE_KEY}"
 
 BASE="/opt"
 DEST="$BASE/${BRAND,,}-instance"
-REPO_URL="https://github.com/sajibmiahdv99/TredAssitantAgent.git"
+REPO_URL="https://github.com/sajibmiahdv99/TredAssistantAgent-SaaS.git"
 
 echo "==> [1/6] Cloning fresh copy to $DEST"
 rm -rf "$DEST"
