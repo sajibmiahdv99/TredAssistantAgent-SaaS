@@ -346,6 +346,22 @@ async function main(): Promise<void> {
     process.exit(0);
   }
   setInterval(tick, INTERVAL_MS);
+
+  // Channel signal poller — reads new messages from users' linked Telegram
+  // channels via their own MTProto session (no bot required). Runs on its
+  // own cadence so a slow channel fetch never delays order execution.
+  const POLL_INTERVAL_MS = Number(process.env.CHANNEL_POLL_INTERVAL_MS ?? 30_000);
+  setInterval(async () => {
+    try {
+      const { pollSignalChannelsOnce } = await import("./channelPoller.ts");
+      const res = await pollSignalChannelsOnce();
+      if (res.checked > 0) {
+        log("channel-poller", `checked=${res.checked} ingested=${res.ingested}`);
+      }
+    } catch (e) {
+      log("channel-poller", `error: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }, POLL_INTERVAL_MS);
 }
 
 main().catch((e) => {

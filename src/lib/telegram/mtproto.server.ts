@@ -215,3 +215,37 @@ export function friendlyTelegramError(err: unknown): string {
   }
   return raw || "Telegram login failed.";
 }
+
+export type ChannelMessage = {
+  id: number;
+  text: string;
+  date: number; // epoch ms
+};
+
+/**
+ * Fetch recent messages from a channel/supergroup via the user's own session
+ * (NO bot required — works because the linked account is a member).
+ * Returns text messages newest-first, capped at `limit` (default 20).
+ * Throws on flood/network errors so the caller can back off.
+ */
+export async function fetchChannelMessages(
+  sessionString: string,
+  chatId: string,
+  limit = 20,
+): Promise<ChannelMessage[]> {
+  const client = await makeClient(sessionString);
+  try {
+    const entity = await client.getEntity(chatId);
+    const messages = await client.getMessages(entity, { limit });
+    const out: ChannelMessage[] = [];
+    for (const m of messages) {
+      const text = m.text?.trim();
+      if (!text) continue; // skip media-only, stickers, etc.
+      const dateMs = m.date ? Number(m.date) * 1000 : Date.now();
+      out.push({ id: m.id, text, date: dateMs });
+    }
+    return out;
+  } finally {
+    await client.disconnect().catch(() => {});
+  }
+}
