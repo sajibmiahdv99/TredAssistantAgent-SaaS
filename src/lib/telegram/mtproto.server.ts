@@ -148,6 +148,129 @@ export async function logOutSession(sessionString: string): Promise<void> {
   }
 }
 
+// ============ QR / approve-based login (login-token flow) ============
+// Instead of phone -> code -> 2FA, the owner scans the QR (or opens the
+// tg://login link) in their already-authorized Telegram and taps Approve.
+// The server polls ExportLoginToken until the approval lands.
+
+const qrSessions = new Map<string, { client: TelegramClient; token: Buffer; expiresAt: number }>();
+const QR_SESSION_TTL_MS = 3 * 60 * 1000; // 3 minutes
+
+export type QrLoginStartResult = {
+  loginToken: string; // base64url token — put it in tg://login?token=...
+  expires: number;
+};
+
+function toBuffer(v: unknown): Buffer {
+  if (Buffer.isBuffer(v)) return v;
+  return Buffer.from(v as Uint8Array);
+}
+
+/** Step 1 (QR): open a client and export a login token. Keeps the client alive for polling. */
+export async function startQrLogin(sessionId: string): Promise<QrLoginStartResult> {
+  const { apiId, apiHash } = getCreds();
+  const client = await makeClient("");
+  try {
+    const result = await client.invoke(
+      new Api.auth.ExportLoginToken({ apiId, apiHash, exceptIds: [] }),
+    );
+    if (!(result instanceof Api.auth.LoginToken)) {
+      throw new Error("Unexpected result while creating the login QR");
+    }
+    const token = toBuffer(result.token);
+    qrSessions.set(sessionId, {
+      client,
+      token,
+      expiresAt: Date.now() + QR_SESSION_TTL_MS,
+    });
+    return { loginToken: token.toString("base64url"), expires: Number(result.expires) };
+  } catch (err) {
+    await client.disconnect().catch(() => {});
+    throw err;
+  }
+}
+
+/**
+ * Step 2 (QR): poll for approval.
+ * Returns null while the owner has not approved yet.
+ */
+export async function pollQrLogin(sessionId: string): Promise<VerifyResult | null> {
+  const sess = qrSessions.get(sessionId);
+  if (!sess) throw new Error("QR login session expired. Please start again.");
+  if (Date.now() > sess.expiresAt) {
+    qrSessions.delete(sessionId);
+    await sess.client.disconnect().catch(() => {});
+    throw new Error("QR login expired. Please start again.");
+  }
+  const { apiId, apiHash } = getCreds();
+  try {
+    const result = await sess.client.invoke(
+      new Api.auth.ExportLoginToken({ apiId, apiHash, exceptIds: [] }),
+    );
+    if (result instanceof Api.auth.LoginTokenSuccess) {
+      const auth = result.authorization;
+      const user = auth instanceof Api.auth.Authorization ? (auth.user as Api.User) : null;
+      const sessionString = (sess.client.session.save() as unknown as string) ?? "";
+      qrSessions.delete(sessionId);
+      await sess.client.disconnect().catch(() => {});
+      return {
+        kind: "ok",
+        sessionString,
+        userId: user?.id?.toString() ?? "",
+        username: user?.username ?? null,
+        firstName: user?.firstName ?? null,
+      };
+    }
+    if (result instanceof Api.auth.LoginTokenMigrateTo) {
+      await sess.client._switchDC(result.dcId);
+      const migrated = await sess.client.invoke(
+        new Api.auth.ImportLoginToken({ token: toBuffer(result.token) }),
+      );
+      if (migrated instanceof Api.auth.LoginTokenSuccess) {
+        const auth = migrated.authorization;
+        const user = auth instanceof Api.auth.Authorization ? (auth.user as Api.User) : null;
+        const sessionString = (sess.client.session.save() as unknown as string) ?? "";
+        qrSessions.delete(sessionId);
+        await sess.client.disconnect().catch(() => {});
+        return {
+          kind: "ok",
+          sessionString,
+          userId: user?.id?.toString() ?? "",
+          username: user?.username ?? null,
+          firstName: user?.firstName ?? null,
+        };
+      }
+      return null;
+    }
+    if (result instanceof Api.auth.LoginToken) {
+      // Not approved yet — refresh the token (QR rotates).
+      sess.token = toBuffer(result.token);
+      return null;
+    }
+    return null;
+  } catch (err: unknown) {
+    const msg: string =
+      (err as { errorMessage?: string })?.errorMessage ??
+      (err as { message?: string })?.message ??
+      "";
+    if (msg === "SESSION_PASSWORD_NEEDED") {
+      const sessionString = (sess.client.session.save() as unknown as string) ?? "";
+      qrSessions.delete(sessionId);
+      await sess.client.disconnect().catch(() => {});
+      return { kind: "needs_password", sessionString };
+    }
+    throw err;
+  }
+}
+
+/** Cancel an in-flight QR login (best effort). */
+export async function cancelQrLogin(sessionId: string): Promise<void> {
+  const sess = qrSessions.get(sessionId);
+  if (!sess) return;
+  qrSessions.delete(sessionId);
+  await sess.client.disconnect().catch(() => {});
+}
+
 export type DialogChannel = {
   chatId: string;
   name: string;

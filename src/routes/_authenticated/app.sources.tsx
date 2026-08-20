@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   useSuspenseQuery,
@@ -49,14 +49,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import QRCode from "qrcode";
+import { Loader2 } from "lucide-react";
 import {
   listSignalSources,
   listPersonalSignalChannels,
   listTelegramAccounts,
   syncTelegramChannels,
-  startTelegramLogin,
+  startTelegramQrLogin,
+  pollTelegramQrLogin,
+  cancelTelegramQrLogin,
   verifyTelegramLogin,
-  resendTelegramCode,
   deleteTelegramAccount,
   toggleChannelSignalSource,
   getChannelRiskSettings,
@@ -147,7 +150,7 @@ function statusBadge(status: string) {
   );
 }
 
-type Step = "phone" | "code" | "password";
+type Step = "qr" | "password";
 
 function Page() {
   const qc = useQueryClient();
@@ -155,41 +158,88 @@ function Page() {
   const { data: personal } = useSuspenseQuery(personalOpts);
   const { data: tgAccounts } = useSuspenseQuery(tgAcctOpts);
 
-  // Telegram connect dialog state
-  const startFn = useServerFn(startTelegramLogin);
+  // Telegram connect dialog state (QR / approve-based login)
+  const startQrFn = useServerFn(startTelegramQrLogin);
+  const pollQrFn = useServerFn(pollTelegramQrLogin);
+  const cancelQrFn = useServerFn(cancelTelegramQrLogin);
   const verifyFn = useServerFn(verifyTelegramLogin);
-  const resendFn = useServerFn(resendTelegramCode);
   const delFn = useServerFn(deleteTelegramAccount);
 
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<Step>("phone");
+  const [step, setStep] = useState<Step>("qr");
   const [accountId, setAccountId] = useState<string | null>(null);
   const [label, setLabel] = useState("");
-  const [phone, setPhone] = useState("");
-  const [code, setCode] = useState("");
+  const [loginToken, setLoginToken] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [password, setPassword] = useState("");
 
   const resetDlg = () => {
-    setStep("phone");
+    setStep("qr");
     setAccountId(null);
     setLabel("");
-    setPhone("");
-    setCode("");
+    setLoginToken(null);
+    setQrDataUrl(null);
     setPassword("");
   };
 
-  const startMut = useMutation({
-    mutationFn: (vars: { label: string; phone: string }) => startFn({ data: vars }),
-    onSuccess: (r) => {
+  const startQrMut = useMutation({
+    mutationFn: (vars: { label: string }) => startQrFn({ data: vars }),
+    onSuccess: async (r) => {
       setAccountId(r.id);
-      setStep("code");
-      toast.success("Code sent. Check your Telegram app.");
+      setLoginToken(r.loginToken);
+      try {
+        const url = await QRCode.toDataURL(`tg://login?token=${r.loginToken}`, {
+          width: 240,
+          margin: 1,
+          errorCorrectionLevel: "M",
+        });
+        setQrDataUrl(url);
+      } catch {
+        setQrDataUrl(null);
+      }
+      setStep("qr");
       qc.invalidateQueries({ queryKey: ["telegram-accounts"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const pollQrMut = useMutation({
+    mutationFn: (id: string) => pollQrFn({ data: { id } }),
+    onSuccess: (r) => {
+      if (r.status === "ok") {
+        toast.success("Telegram account connected.");
+        setOpen(false);
+        resetDlg();
+        qc.invalidateQueries({ queryKey: ["telegram-accounts"] });
+      } else if (r.status === "needs_password") {
+        setStep("password");
+        toast.message("This account has two-factor enabled. Enter your password.");
+      }
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      qc.invalidateQueries({ queryKey: ["telegram-accounts"] });
+    },
+  });
+
+  // Poll for approval while the QR step is visible.
+  useEffect(() => {
+    if (step !== "qr" || !accountId || !open) return;
+    pollQrMut.mutate(accountId);
+    const i = setInterval(() => {
+      if (stepRef.current === "qr" && openRef.current) pollQrMut.mutate(accountId);
+    }, 3000);
+    return () => clearInterval(i);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, accountId, open]);
+
+  const stepRef = useRef(step);
+  stepRef.current = step;
+  const openRef = useRef(open);
+  openRef.current = open;
+
   const verifyMut = useMutation({
-    mutationFn: (vars: { id: string; code: string; password?: string }) => verifyFn({ data: vars }),
+    mutationFn: (vars: { id: string; password?: string }) => verifyFn({ data: vars }),
     onSuccess: (r) => {
       if (!r.ok && r.requires_2fa) {
         setStep("password");
@@ -206,11 +256,6 @@ function Page() {
       qc.invalidateQueries({ queryKey: ["telegram-accounts"] });
     },
   });
-  const resendMut = useMutation({
-    mutationFn: (id: string) => resendFn({ data: { id } }),
-    onSuccess: () => toast.success("New code sent."),
-    onError: (e: Error) => toast.error(e.message),
-  });
   const delMut = useMutation({
     mutationFn: (id: string) => delFn({ data: { id } }),
     onSuccess: () => {
@@ -221,7 +266,7 @@ function Page() {
   });
   const resumeVerification = (id: string) => {
     setAccountId(id);
-    setStep("code");
+    setStep("qr");
     setOpen(true);
   };
 
@@ -435,108 +480,89 @@ function Page() {
         }}
       >
         <DialogContent>
-          {step === "phone" && (
+          {step === "qr" && (
             <>
               <DialogHeader>
                 <DialogTitle>Connect Telegram account</DialogTitle>
                 <DialogDescription>
-                  Enter your phone number. Telegram will send a login code to your existing Telegram
-                  app.
+                  {loginToken
+                    ? "Open the link in Telegram and tap Approve — no login code needed."
+                    : "Give this account a label, then connect with one approval tap."}
                 </DialogDescription>
               </DialogHeader>
-              <form
-                className="space-y-4"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!label.trim() || !phone.trim()) return;
-                  startMut.mutate({ label: label.trim(), phone: phone.trim() });
-                }}
-              >
-                <div className="space-y-1.5">
-                  <Label htmlFor="label">Label</Label>
-                  <Input
-                    id="label"
-                    placeholder="My main account"
-                    value={label}
-                    onChange={(e) => setLabel(e.target.value)}
-                    maxLength={64}
-                    required
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="phone">Phone number (with country code)</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+15551234567"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    required
-                  />
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={startMut.isPending}>
-                    {startMut.isPending ? "Sending code…" : "Send code"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </>
-          )}
-          {step === "code" && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Enter Telegram code</DialogTitle>
-                <DialogDescription>Telegram sent a login code to your app.</DialogDescription>
-              </DialogHeader>
-              <form
-                className="space-y-4"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!accountId || !code.trim()) return;
-                  verifyMut.mutate({ id: accountId, code: code.trim() });
-                }}
-              >
-                <div className="space-y-1.5">
-                  <Label htmlFor="code">Login code</Label>
-                  <Input
-                    id="code"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    placeholder="12345"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
-                    required
-                    autoFocus
-                  />
-                </div>
-                <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1"
-                    onClick={() => setStep("phone")}
-                  >
-                    <ArrowLeft className="h-3 w-3" /> Back
-                  </Button>
-                  <div className="flex gap-2">
+              {!loginToken ? (
+                <form
+                  className="space-y-4"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!label.trim()) return;
+                    startQrMut.mutate({ label: label.trim() });
+                  }}
+                >
+                  <div className="space-y-1.5">
+                    <Label htmlFor="label">Label</Label>
+                    <Input
+                      id="label"
+                      placeholder="My main account"
+                      value={label}
+                      onChange={(e) => setLabel(e.target.value)}
+                      maxLength={64}
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={startQrMut.isPending}>
+                      {startQrMut.isPending ? "Creating…" : "Continue"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex flex-col items-center gap-3 py-2">
+                    {qrDataUrl ? (
+                      <img
+                        src={qrDataUrl}
+                        alt="Telegram login QR"
+                        className="h-56 w-56 rounded-lg border bg-white p-2"
+                      />
+                    ) : (
+                      <div className="grid h-56 w-56 place-items-center rounded-lg border bg-muted">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                      Scan with Telegram, or open the link and tap{" "}
+                      <span className="font-medium text-foreground">Approve</span>.
+                    </p>
+                    <a
+                      href={`tg://login?token=${loginToken}`}
+                      className="max-w-full truncate rounded-md border bg-muted px-3 py-1.5 font-mono text-xs text-primary"
+                      title="Open in Telegram and tap Approve"
+                    >
+                      tg://login?token=…
+                    </a>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Waiting for approval…
+                    </div>
+                  </div>
+                  <DialogFooter>
                     <Button
                       type="button"
-                      variant="outline"
-                      disabled={!accountId || resendMut.isPending}
-                      onClick={() => accountId && resendMut.mutate(accountId)}
+                      variant="ghost"
+                      onClick={() => {
+                        if (accountId) cancelQrFn({ data: { id: accountId } }).catch(() => {});
+                        setOpen(false);
+                      }}
                     >
-                      {resendMut.isPending ? "Resending…" : "Resend code"}
+                      Cancel
                     </Button>
-                    <Button type="submit" disabled={verifyMut.isPending}>
-                      {verifyMut.isPending ? "Verifying…" : "Verify"}
-                    </Button>
-                  </div>
-                </DialogFooter>
-              </form>
+                  </DialogFooter>
+                </div>
+              )}
             </>
           )}
           {step === "password" && (
@@ -553,8 +579,8 @@ function Page() {
                 className="space-y-4"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (!accountId || !password || !code) return;
-                  verifyMut.mutate({ id: accountId, code, password });
+                  if (!accountId || !password) return;
+                  verifyMut.mutate({ id: accountId, password });
                 }}
               >
                 <div className="space-y-1.5">

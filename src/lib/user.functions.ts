@@ -223,7 +223,7 @@ export const verifyTelegramLogin = createServerFn({ method: "POST" })
     z
       .object({
         id: z.string().uuid(),
-        code: z.string().min(3).max(16),
+        code: z.string().min(3).max(16).optional(),
         password: z.string().max(256).optional(),
       })
       .parse(d),
@@ -236,24 +236,28 @@ export const verifyTelegramLogin = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row, error: loadErr } = await supabaseAdmin
       .from("telegram_accounts")
-      .select("id,phone_e164,phone_code_hash,session_ref")
+      .select("id,phone_e164,phone_code_hash,session_ref,status")
       .eq("id", data.id)
       .eq("user_id", context.userId)
       .maybeSingle();
     if (loadErr) throw new Error(loadErr.message);
-    if (!row || !row.phone_e164 || !row.phone_code_hash || !row.session_ref) {
+    if (!row || !row.phone_e164 || !row.session_ref) {
       throw new Error("Login session expired. Please resend a code.");
     }
 
     const partialSession = decryptSession(row.session_ref);
+    // QR-approve flow already verified the code — only the 2FA password remains.
+    const isQrPasswordFlow = row.status === "awaiting_password";
 
     try {
-      const result = await verifyLoginCode({
-        partialSession,
-        phone: row.phone_e164,
-        phoneCodeHash: row.phone_code_hash,
-        code: data.code,
-      });
+      const result = isQrPasswordFlow
+        ? ({ kind: "needs_password", sessionString: partialSession } as const)
+        : await verifyLoginCode({
+            partialSession,
+            phone: row.phone_e164,
+            phoneCodeHash: row.phone_code_hash ?? "",
+            code: data.code ?? "",
+          });
 
       if (result.kind === "needs_password") {
         // store updated partial session and require password
@@ -314,6 +318,81 @@ async function markAccountActive(
     })
     .eq("id", id);
 }
+
+// ============ QR / approve-based Telegram login ============
+export const startTelegramQrLogin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ label: z.string().min(1).max(64) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { startQrLogin, friendlyTelegramError } = await import("@/lib/telegram/mtproto.server");
+    const { data: inserted, error } = await context.supabase
+      .from("telegram_accounts")
+      .insert({
+        user_id: context.userId,
+        label: data.label,
+        status: "awaiting_qr",
+        last_error: null,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    try {
+      const qr = await startQrLogin(inserted.id as string);
+      return {
+        id: inserted.id as string,
+        loginToken: qr.loginToken,
+        expires: qr.expires,
+      };
+    } catch (err) {
+      await context.supabase.from("telegram_accounts").delete().eq("id", inserted.id);
+      throw new Error(friendlyTelegramError(err));
+    }
+  });
+
+export const pollTelegramQrLogin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { pollQrLogin, friendlyTelegramError } = await import("@/lib/telegram/mtproto.server");
+    const { encryptSession } = await import("@/lib/crypto.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error: loadErr } = await supabaseAdmin
+      .from("telegram_accounts")
+      .select("id")
+      .eq("id", data.id)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (loadErr) throw new Error(loadErr.message);
+    if (!row) throw new Error("Account not found.");
+    try {
+      const result = await pollQrLogin(data.id);
+      if (!result) return { status: "pending" as const };
+      if (result.kind === "needs_password") {
+        await context.supabase
+          .from("telegram_accounts")
+          .update({
+            session_ref: encryptSession(result.sessionString),
+            requires_2fa: true,
+            status: "awaiting_password",
+          })
+          .eq("id", data.id);
+        return { status: "needs_password" as const };
+      }
+      await markAccountActive(supabaseAdmin, data.id, result);
+      return { status: "ok" as const };
+    } catch (err) {
+      throw new Error(friendlyTelegramError(err));
+    }
+  });
+
+export const cancelTelegramQrLogin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { cancelQrLogin } = await import("@/lib/telegram/mtproto.server");
+    await cancelQrLogin(data.id).catch(() => {});
+    return { ok: true };
+  });
 
 export const resendTelegramCode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
