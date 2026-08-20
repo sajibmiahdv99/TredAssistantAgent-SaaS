@@ -121,15 +121,16 @@ function NotificationsTab() {
         evt_invalid_keys: data.evt_invalid_keys,
         evt_new_signal: data.evt_new_signal,
       });
-      if (!data.email) {
-        // Fall back to the account email so the field is never shown empty.
-        supabase.auth
-          .getUser()
-          .then(({ data: { user } }) => {
-            if (user?.email) setForm((f) => ({ ...f, email: user.email ?? "" }));
-          })
-          .catch(() => {});
-      }
+    }
+    // Prefill the email from the account when there is no saved value
+    // (no preferences row yet, or the row has an empty email).
+    if (!data?.email) {
+      supabase.auth
+        .getUser()
+        .then(({ data: { user } }) => {
+          if (user?.email) setForm((f) => ({ ...f, email: user.email ?? "" }));
+        })
+        .catch(() => {});
     }
   }, [data]);
 
