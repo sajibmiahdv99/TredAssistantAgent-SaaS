@@ -111,11 +111,16 @@ export function AdminShell({ children }: { children?: ReactNode }) {
 
       <main className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center justify-between border-b border-border p-4 lg:hidden">
-          <button onClick={() => setOpen((v) => !v)} className="p-2">
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="p-2"
+            aria-label={open ? "Close admin navigation menu" : "Open admin navigation menu"}
+            aria-expanded={open}
+          >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
           <span className="font-semibold text-amber-400">Admin</span>
-          <Link to="/app" className="p-2 text-muted-foreground">
+          <Link to="/app" className="p-2 text-muted-foreground" aria-label="Back to app">
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </div>

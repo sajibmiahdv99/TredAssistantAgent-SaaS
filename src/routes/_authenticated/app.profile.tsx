@@ -75,35 +75,35 @@ function Page() {
       <Card>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Label>Email</Label>
-            <Input readOnly value={data?.email ?? ""} />
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" readOnly value={data?.email ?? ""} />
           </div>
           <div>
-            <Label>Full name</Label>
-            <Input
+            <Label htmlFor="full_name">Full name</Label>
+            <Input id="full_name"
               value={form.full_name}
               onChange={(e) => setForm({ ...form, full_name: e.target.value })}
             />
           </div>
           <div>
-            <Label>Avatar URL</Label>
-            <Input
+            <Label htmlFor="avatar_url">Avatar URL</Label>
+            <Input id="avatar_url"
               value={form.avatar_url}
               onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
               placeholder="https://..."
             />
           </div>
           <div>
-            <Label>Timezone</Label>
-            <Input
+            <Label htmlFor="timezone">Timezone</Label>
+            <Input id="timezone"
               value={form.timezone}
               onChange={(e) => setForm({ ...form, timezone: e.target.value })}
               placeholder="UTC"
             />
           </div>
           <div>
-            <Label>Locale</Label>
-            <Input
+            <Label htmlFor="locale">Locale</Label>
+            <Input id="locale"
               value={form.locale}
               onChange={(e) => setForm({ ...form, locale: e.target.value })}
               placeholder="en"

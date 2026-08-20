@@ -366,16 +366,17 @@ function Page() {
                   </DialogHeader>
                   <div className="space-y-3">
                     <div>
-                      <Label>Label</Label>
-                      <Input
+                      <Label htmlFor="label">Label</Label>
+                      <Input id="label"
                         value={form.label}
                         onChange={(e) => setForm({ ...form, label: e.target.value })}
                         placeholder="Main account"
                       />
                     </div>
                     <div>
-                      <Label>{selected.bridge ? "Bridge URL" : "API Key"}</Label>
+                      <Label htmlFor="api_key">{selected.bridge ? "Bridge URL" : "API Key"}</Label>
                       <Input
+                        id="api_key"
                         value={form.api_key}
                         placeholder={selected.bridge ? "https://my-bridge.example.com" : undefined}
                         onChange={(e) => setForm({ ...form, api_key: e.target.value })}
@@ -385,8 +386,11 @@ function Page() {
                       )}
                     </div>
                     <div>
-                      <Label>{selected.bridge ? "Bridge Bearer Token" : "API Secret"}</Label>
+                      <Label htmlFor="api_secret">
+                        {selected.bridge ? "Bridge Bearer Token" : "API Secret"}
+                      </Label>
                       <Input
+                        id="api_secret"
                         type="password"
                         value={form.api_secret}
                         onChange={(e) => setForm({ ...form, api_secret: e.target.value })}
@@ -394,8 +398,8 @@ function Page() {
                     </div>
                     {selected.requiresPassphrase && (
                       <div>
-                        <Label>Passphrase</Label>
-                        <Input
+                        <Label htmlFor="passphrase">Passphrase</Label>
+                        <Input id="passphrase"
                           type="password"
                           value={form.passphrase}
                           onChange={(e) => setForm({ ...form, passphrase: e.target.value })}

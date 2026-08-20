@@ -94,34 +94,34 @@ function Page() {
               </DialogHeader>
               <div className="space-y-3">
                 <div>
-                  <Label>Code</Label>
-                  <Input
+                  <Label htmlFor="code">Code</Label>
+                  <Input id="code"
                     value={form.code}
                     onChange={(e) => setForm({ ...form, code: e.target.value })}
                   />
                 </div>
                 <div>
-                  <Label>Name</Label>
-                  <Input
+                  <Label htmlFor="name">Name</Label>
+                  <Input id="name"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                   />
                 </div>
                 <div>
-                  <Label>Description</Label>
-                  <Input
+                  <Label htmlFor="description">Description</Label>
+                  <Input id="description"
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>Type</Label>
+                    <Label htmlFor="type">Type</Label>
                     <Select
                       value={form.source_type}
                       onValueChange={(v) => setForm({ ...form, source_type: v })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="type">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -133,12 +133,12 @@ function Page() {
                     </Select>
                   </div>
                   <div>
-                    <Label>Status</Label>
+                    <Label htmlFor="status">Status</Label>
                     <Select
                       value={form.status}
                       onValueChange={(v: SourceStatus) => setForm({ ...form, status: v })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="status">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

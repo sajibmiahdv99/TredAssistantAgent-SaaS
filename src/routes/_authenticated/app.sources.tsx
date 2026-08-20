@@ -1271,9 +1271,9 @@ function RiskDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Exchange</Label>
+              <Label htmlFor="exchange">Exchange</Label>
               <Select value={exchangeId} onValueChange={setExchangeId}>
-                <SelectTrigger>
+                <SelectTrigger id="exchange">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

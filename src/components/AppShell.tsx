@@ -132,7 +132,12 @@ export function AppShell({ children }: { children?: ReactNode }) {
 
       <main className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center justify-between border-b border-border p-4 lg:hidden">
-          <button onClick={() => setOpen((v) => !v)} className="p-2">
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="p-2"
+            aria-label={open ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={open}
+          >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
           <div className="flex items-center gap-2">
@@ -141,7 +146,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
             </span>
             <span className="font-semibold">{BRAND.name}</span>
           </div>
-          <button onClick={signOut} className="p-2 text-muted-foreground">
+          <button onClick={signOut} className="p-2 text-muted-foreground" aria-label="Sign out">
             <LogOut className="h-5 w-5" />
           </button>
         </div>

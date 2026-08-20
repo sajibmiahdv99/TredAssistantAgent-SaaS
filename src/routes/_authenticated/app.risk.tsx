@@ -188,8 +188,9 @@ function Page() {
     hint?: string,
   ) => (
     <div>
-      <Label>{label}</Label>
+      <Label htmlFor={`risk_${k}`}>{label}</Label>
       <Input
+        id={`risk_${k}`}
         type="number"
         step="0.1"
         value={form[k]}
@@ -211,8 +212,9 @@ function Page() {
     hint?: string,
   ) => (
     <div>
-      <Label>{label}</Label>
+      <Label htmlFor={`risk_${k}`}>{label}</Label>
       <Input
+        id={`risk_${k}`}
         value={form[k]}
         placeholder={placeholder}
         onChange={(e) => setForm({ ...form, [k]: e.target.value })}
@@ -329,8 +331,9 @@ function Page() {
         </div>
         {form.market_fallback && (
           <div className="mt-4">
-            <Label>Max slippage %</Label>
+            <Label htmlFor="max_slippage">Max slippage %</Label>
             <Input
+              id="max_slippage"
               type="number"
               step="0.1"
               placeholder="e.g. 1.5"
@@ -349,12 +352,12 @@ function Page() {
         <h3 className="mb-3 text-sm font-medium">Entry mode</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Label>Mode</Label>
+            <Label htmlFor="entry_mode">Mode</Label>
             <Select
               value={form.entry_mode}
               onValueChange={(v) => setForm({ ...form, entry_mode: v as "single" | "scale_in" })}
             >
-              <SelectTrigger>
+              <SelectTrigger id="entry_mode">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -370,8 +373,9 @@ function Page() {
           {form.entry_mode === "scale_in" && (
             <>
               <div>
-                <Label>Levels</Label>
+                <Label htmlFor="entry_levels">Levels</Label>
                 <Input
+                  id="entry_levels"
                   type="number"
                   min={2}
                   max={10}
@@ -384,8 +388,9 @@ function Page() {
                 </p>
               </div>
               <div>
-                <Label>Range %</Label>
+                <Label htmlFor="entry_range">Range %</Label>
                 <Input
+                  id="entry_range"
                   type="number"
                   step="0.1"
                   placeholder="e.g. 3"
@@ -397,7 +402,7 @@ function Page() {
                 </p>
               </div>
               <div className="sm:col-span-2">
-                <Label>Distribution</Label>
+                <Label htmlFor="entry_distribution">Distribution</Label>
                 <Select
                   value={form.entry_distribution}
                   onValueChange={(v) =>
@@ -407,7 +412,7 @@ function Page() {
                     })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="entry_distribution">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

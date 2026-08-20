@@ -195,8 +195,8 @@ function Page() {
               </DialogHeader>
               <div className="grid gap-3">
                 <div>
-                  <Label>Name</Label>
-                  <Input
+                  <Label htmlFor="name">Name</Label>
+                  <Input id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="My grid v1"
@@ -204,16 +204,16 @@ function Page() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>Start date</Label>
-                    <Input
+                    <Label htmlFor="start_date">Start date</Label>
+                    <Input id="start_date"
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
                     />
                   </div>
                   <div>
-                    <Label>End date</Label>
-                    <Input
+                    <Label htmlFor="end_date">End date</Label>
+                    <Input id="end_date"
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
@@ -222,16 +222,16 @@ function Page() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>Initial balance (USDT)</Label>
-                    <Input
+                    <Label htmlFor="initial_balance_usdt">Initial balance (USDT)</Label>
+                    <Input id="initial_balance_usdt"
                       type="number"
                       value={initialBalance}
                       onChange={(e) => setInitialBalance(e.target.value)}
                     />
                   </div>
                   <div>
-                    <Label>Fee % per side</Label>
-                    <Input
+                    <Label htmlFor="fee_per_side">Fee % per side</Label>
+                    <Input id="fee_per_side"
                       type="number"
                       step="0.01"
                       value={feePct}
@@ -240,8 +240,8 @@ function Page() {
                   </div>
                 </div>
                 <div>
-                  <Label>Symbols (optional, csv)</Label>
-                  <Input
+                  <Label htmlFor="symbols_optional_csv">Symbols (optional, csv)</Label>
+                  <Input id="symbols_optional_csv"
                     value={symbols}
                     onChange={(e) => setSymbols(e.target.value)}
                     placeholder="BTCUSDT,ETHUSDT"

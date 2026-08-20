@@ -257,8 +257,8 @@ function Page() {
                 Static SL / TP
               </div>
               <div>
-                <Label>Stop loss</Label>
-                <Input
+                <Label htmlFor="stop_loss">Stop loss</Label>
+                <Input id="stop_loss"
                   type="number"
                   step="any"
                   value={editForm.stop_loss}
@@ -266,8 +266,8 @@ function Page() {
                 />
               </div>
               <div>
-                <Label>Take profit</Label>
-                <Input
+                <Label htmlFor="take_profit">Take profit</Label>
+                <Input id="take_profit"
                   type="number"
                   step="any"
                   value={editForm.take_profit}
@@ -284,8 +284,8 @@ function Page() {
                 Trailing stop
               </div>
               <div>
-                <Label>Distance (price units)</Label>
-                <Input
+                <Label htmlFor="distance_price_units">Distance (price units)</Label>
+                <Input id="distance_price_units"
                   type="number"
                   step="any"
                   placeholder="e.g. 150"

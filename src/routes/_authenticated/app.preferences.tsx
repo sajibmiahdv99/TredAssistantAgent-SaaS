@@ -161,8 +161,8 @@ function NotificationsTab() {
     <Card className="p-6 space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Email address</Label>
-          <Input
+          <Label htmlFor="email_address">Email address</Label>
+          <Input id="email_address"
             type="email"
             value={form.email}
             placeholder="you@example.com"
@@ -170,8 +170,8 @@ function NotificationsTab() {
           />
         </div>
         <div className="space-y-2">
-          <Label>Telegram chat ID</Label>
-          <Input
+          <Label htmlFor="telegram_chat_id">Telegram chat ID</Label>
+          <Input id="telegram_chat_id"
             value={form.telegram_chat_id}
             placeholder="123456789"
             onChange={(e) => setForm({ ...form, telegram_chat_id: e.target.value })}
@@ -184,8 +184,9 @@ function NotificationsTab() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {CHANNELS.map((c) => (
             <div key={c.key} className="flex items-center justify-between rounded-md border p-3">
-              <Label>{c.label}</Label>
+              <Label htmlFor={`channel_${c.key}`}>{c.label}</Label>
               <Switch
+                id={`channel_${c.key}`}
                 checked={form[c.key] as boolean}
                 onCheckedChange={(v) => setForm({ ...form, [c.key]: v })}
               />
@@ -373,12 +374,12 @@ function OrderBehaviorTab() {
     <Card className="p-6 space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Default order type</Label>
+          <Label htmlFor="default_order_type">Default order type</Label>
           <Select
             value={form.default_order_type}
             onValueChange={(v) => setForm({ ...form, default_order_type: v as "market" | "limit" })}
           >
-            <SelectTrigger>
+            <SelectTrigger id="default_order_type">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -391,8 +392,8 @@ function OrderBehaviorTab() {
           </p>
         </div>
         <div className="space-y-2">
-          <Label>Slippage tolerance (%)</Label>
-          <Input
+          <Label htmlFor="slippage_tolerance">Slippage tolerance (%)</Label>
+          <Input id="slippage_tolerance"
             type="number"
             step="0.1"
             min="0"
@@ -409,24 +410,24 @@ function OrderBehaviorTab() {
       <div className="space-y-3">
         <div className="flex items-center justify-between rounded-md border p-3">
           <div>
-            <Label>Partial take-profit ladders</Label>
+            <Label htmlFor="partial_take_profit_ladders">Partial take-profit ladders</Label>
             <p className="text-xs text-muted-foreground">
               Scale out across TP1 / TP2 / TP3 from the signal.
             </p>
           </div>
-          <Switch
+          <Switch id="partial_take_profit_ladders"
             checked={form.partial_tp_enabled}
             onCheckedChange={(v) => setForm({ ...form, partial_tp_enabled: v })}
           />
         </div>
         <div className="flex items-center justify-between rounded-md border p-3">
           <div>
-            <Label>Trailing stop-loss</Label>
+            <Label htmlFor="trailing_stop_loss">Trailing stop-loss</Label>
             <p className="text-xs text-muted-foreground">
               Move SL up as price advances in your favor.
             </p>
           </div>
-          <Switch
+          <Switch id="trailing_stop_loss"
             checked={form.trailing_sl_enabled}
             onCheckedChange={(v) => setForm({ ...form, trailing_sl_enabled: v })}
           />

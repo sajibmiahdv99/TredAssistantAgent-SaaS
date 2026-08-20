@@ -94,45 +94,45 @@ function Page() {
               </DialogHeader>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Code</Label>
-                  <Input
+                  <Label htmlFor="code">Code</Label>
+                  <Input id="code"
                     value={form.code}
                     onChange={(e) => setForm({ ...form, code: e.target.value })}
                   />
                 </div>
                 <div>
-                  <Label>Name</Label>
-                  <Input
+                  <Label htmlFor="name">Name</Label>
+                  <Input id="name"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                   />
                 </div>
                 <div className="col-span-2">
-                  <Label>Description</Label>
-                  <Input
+                  <Label htmlFor="description">Description</Label>
+                  <Input id="description"
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                   />
                 </div>
                 <div>
-                  <Label>Monthly $</Label>
-                  <Input
+                  <Label htmlFor="monthly">Monthly $</Label>
+                  <Input id="monthly"
                     type="number"
                     value={form.monthly_price}
                     onChange={(e) => setForm({ ...form, monthly_price: Number(e.target.value) })}
                   />
                 </div>
                 <div>
-                  <Label>Yearly $</Label>
-                  <Input
+                  <Label htmlFor="yearly">Yearly $</Label>
+                  <Input id="yearly"
                     type="number"
                     value={form.yearly_price}
                     onChange={(e) => setForm({ ...form, yearly_price: Number(e.target.value) })}
                   />
                 </div>
                 <div>
-                  <Label>Max open positions</Label>
-                  <Input
+                  <Label htmlFor="max_open_positions">Max open positions</Label>
+                  <Input id="max_open_positions"
                     type="number"
                     value={form.max_open_positions}
                     onChange={(e) =>
@@ -141,16 +141,16 @@ function Page() {
                   />
                 </div>
                 <div>
-                  <Label>Max daily trades</Label>
-                  <Input
+                  <Label htmlFor="max_daily_trades">Max daily trades</Label>
+                  <Input id="max_daily_trades"
                     type="number"
                     value={form.max_daily_trades}
                     onChange={(e) => setForm({ ...form, max_daily_trades: Number(e.target.value) })}
                   />
                 </div>
                 <div>
-                  <Label>Max trade size %</Label>
-                  <Input
+                  <Label htmlFor="max_trade_size">Max trade size %</Label>
+                  <Input id="max_trade_size"
                     type="number"
                     value={form.max_trade_size_percentage}
                     onChange={(e) =>
@@ -159,8 +159,8 @@ function Page() {
                   />
                 </div>
                 <div>
-                  <Label>Sort order</Label>
-                  <Input
+                  <Label htmlFor="sort_order">Sort order</Label>
+                  <Input id="sort_order"
                     type="number"
                     value={form.sort_order}
                     onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })}

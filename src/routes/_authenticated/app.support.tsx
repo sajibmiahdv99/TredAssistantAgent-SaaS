@@ -79,20 +79,20 @@ function Page() {
               </DialogHeader>
               <div className="space-y-3">
                 <div>
-                  <Label>Subject</Label>
-                  <Input
+                  <Label htmlFor="subject">Subject</Label>
+                  <Input id="subject"
                     value={form.subject}
                     onChange={(e) => setForm({ ...form, subject: e.target.value })}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>Category</Label>
+                    <Label htmlFor="category">Category</Label>
                     <Select
                       value={form.category}
                       onValueChange={(v) => setForm({ ...form, category: v })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="category">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -104,14 +104,14 @@ function Page() {
                     </Select>
                   </div>
                   <div>
-                    <Label>Priority</Label>
+                    <Label htmlFor="priority">Priority</Label>
                     <Select
                       value={form.priority}
                       onValueChange={(v) =>
                         setForm({ ...form, priority: v as typeof form.priority })
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="priority">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -124,8 +124,8 @@ function Page() {
                   </div>
                 </div>
                 <div>
-                  <Label>Description</Label>
-                  <Textarea
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea id="description"
                     rows={5}
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
