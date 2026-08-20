@@ -411,7 +411,7 @@ function Page() {
     <>
       <div className="flex items-start justify-between gap-4">
         <PageHeader
-          title="Trade plan"
+          title="Sources"
           subtitle="Connect Telegram, pick the channels you trade, and configure per-channel risk."
         />
         <Button

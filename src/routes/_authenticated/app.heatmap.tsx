@@ -47,10 +47,10 @@ function Page() {
       <div className="space-y-6">
         <PageHeader
           title="Portfolio Heat Map"
-          subtitle="Open exposure ও unrealized PnL ভিজ্যুয়ালাইজেশন।"
+          subtitle="Visualize open exposure and unrealized PnL across your portfolio."
         />
         <Card className="p-12 text-center text-muted-foreground">
-          কোনো ওপেন পজিশন নেই। সিগন্যাল প্রসেস হলে এখানে দেখা যাবে।
+          No open positions. They will appear here once signals are processed.
         </Card>
       </div>
     );
@@ -62,7 +62,7 @@ function Page() {
     <div className="space-y-6">
       <PageHeader
         title="Portfolio Heat Map"
-        subtitle="Open exposure ও unrealized PnL ভিজ্যুয়ালাইজেশন।"
+        subtitle="Visualize open exposure and unrealized PnL across your portfolio."
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

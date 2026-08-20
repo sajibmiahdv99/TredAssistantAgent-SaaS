@@ -119,7 +119,7 @@ function Page() {
         },
       }),
     onSuccess: () => {
-      toast.success("Backtest queued — চলতে শুরু করবে ১ মিনিটের মধ্যে");
+      toast.success("Backtest queued — it will start within a minute");
       qc.invalidateQueries({ queryKey: ["backtests"] });
       setOpenNew(false);
       setName("");
@@ -139,7 +139,7 @@ function Page() {
     <div className="space-y-6">
       <PageHeader
         title="Backtesting"
-        subtitle="ঐতিহাসিক সিগন্যালের উপর আপনার বর্তমান Risk Engine ও কনফিগারেশন সিমুলেট করুন।"
+        subtitle="Simulate your current Risk Engine and configuration on historical signals."
         actions={
           <Dialog open={openNew} onOpenChange={setOpenNew}>
             <DialogTrigger asChild>
@@ -217,8 +217,8 @@ function Page() {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  সর্বোচ্চ ৯০ দিন। শুধুমাত্র Binance-এ লিস্টেড সিম্বল সাপোর্টেড। ফাঁকা রাখলে আপনার
-                  সব সিগন্যাল ব্যবহার হবে।
+                  Up to 90 days. Only symbols listed on Binance are supported. Leave empty to use all
+                  your signals.
                 </p>
                 <Button onClick={() => create.mutate()} disabled={create.isPending}>
                   <Play className="h-4 w-4 mr-2" />
@@ -232,7 +232,7 @@ function Page() {
 
       {runs.length === 0 ? (
         <Card className="p-12 text-center text-muted-foreground">
-          এখনো কোনো backtest চালানো হয়নি। "New backtest" ক্লিক করে শুরু করুন।
+          No backtests run yet. Click "New backtest" to get started.
         </Card>
       ) : (
         <Card className="overflow-hidden">

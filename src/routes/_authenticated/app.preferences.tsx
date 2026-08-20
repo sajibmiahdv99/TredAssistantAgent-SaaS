@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   getMyNotificationPrefs,
   upsertMyNotificationPrefs,
@@ -107,7 +108,7 @@ function NotificationsTab() {
   });
 
   useEffect(() => {
-    if (data)
+    if (data) {
       setForm({
         email: data.email ?? "",
         telegram_chat_id: data.telegram_chat_id ?? "",
@@ -120,6 +121,16 @@ function NotificationsTab() {
         evt_invalid_keys: data.evt_invalid_keys,
         evt_new_signal: data.evt_new_signal,
       });
+      if (!data.email) {
+        // Fall back to the account email so the field is never shown empty.
+        supabase.auth
+          .getUser()
+          .then(({ data: { user } }) => {
+            if (user?.email) setForm((f) => ({ ...f, email: user.email ?? "" }));
+          })
+          .catch(() => {});
+      }
+    }
   }, [data]);
 
   const save = useMutation({

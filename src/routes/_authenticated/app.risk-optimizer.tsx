@@ -181,7 +181,7 @@ function Page() {
     <div className="space-y-6">
       <PageHeader
         title="AI Risk Optimizer"
-        subtitle="একাধিক ঝুঁকি কনফিগারেশন সিমুলেট করে সেরা কম্বিনেশন খুঁজে বের করুন — return-over-max-drawdown স্কোর অনুযায়ী।"
+        subtitle="Simulate multiple risk configurations to find the best combination, ranked by return-over-max-drawdown score."
         actions={
           <Dialog open={openNew} onOpenChange={setOpenNew}>
             <DialogTrigger asChild>
@@ -295,7 +295,7 @@ function Page() {
 
       {runs.length === 0 ? (
         <Card className="p-12 text-center text-muted-foreground">
-          এখনো কোনো optimization চালানো হয়নি। "New optimization" ক্লিক করে শুরু করুন।
+          No optimizations run yet. Click "New optimization" to get started.
         </Card>
       ) : (
         <Card className="overflow-hidden">
@@ -461,8 +461,8 @@ function RunDetail({ id, onClose }: { id: string; onClose: () => void }) {
           </Card>
         ) : rows.length === 0 || rows.every((r) => !r.eligible) ? (
           <Card className="p-6 text-center text-muted-foreground text-sm">
-            কোনো configuration statistically meaningful ছিল না (৫টির কম ট্রেড)। দীর্ঘতর সময়সীমা
-            বেছে নিন।
+            No configuration was statistically meaningful (fewer than 5 trades). Choose a longer time
+            range.
           </Card>
         ) : (
           <Card className="overflow-hidden">
