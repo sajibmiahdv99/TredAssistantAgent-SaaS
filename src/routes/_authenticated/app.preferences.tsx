@@ -200,8 +200,11 @@ function NotificationsTab() {
         <div className="rounded-md border divide-y">
           {EVENTS.map((ev) => (
             <div key={ev.key} className="flex items-center justify-between p-3">
-              <span className="text-sm">{ev.label}</span>
+              <Label htmlFor={`event_${ev.key}`} className="text-sm">
+                {ev.label}
+              </Label>
               <Switch
+                id={`event_${ev.key}`}
                 checked={form[ev.key] as boolean}
                 onCheckedChange={(v) => setForm({ ...form, [ev.key]: v })}
               />
