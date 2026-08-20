@@ -46,6 +46,24 @@ export const Route = createFileRoute("/api/public/telegram-webhook")({
           return Response.json({ ok: true, ignored: true });
         }
 
+        // "Login with Telegram" — user pressed /start hermes_<token> on the auth bot.
+        if (text.startsWith("/start hermes_")) {
+          const { resolveTelegramLogin, sendTelegramMessage } = await import(
+            "@/lib/telegram-login.server"
+          );
+          const token = text.slice("/start hermes_".length).trim();
+          const from = (update.message as { from?: { first_name?: string; username?: string } })
+            ?.from;
+          const result = await resolveTelegramLogin(
+            token,
+            String(chatId),
+            from?.first_name ?? null,
+            from?.username ?? null,
+          );
+          await sendTelegramMessage(chatId, result.message);
+          return Response.json({ ok: true, login: result.ok });
+        }
+
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: source } = await supabaseAdmin
           .from("signal_sources")
