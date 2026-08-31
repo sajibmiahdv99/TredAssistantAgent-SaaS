@@ -273,11 +273,11 @@ function Page() {
           {tiers.map((tier) => (
             <Card
               key={tier.name}
-              className={
+              className={`flex flex-col ${
                 tier.popular
                   ? "relative border-primary/50 shadow-[0_0_40px_-12px_hsl(var(--primary)/0.35)]"
                   : ""
-              }
+              }`}
             >
               {tier.popular && (
                 <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">Most popular</Badge>
@@ -290,7 +290,7 @@ function Page() {
                 </div>
                 <CardDescription>{tier.description}</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-1">
                 <ul className="space-y-2.5">
                   {tier.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2 text-sm">
