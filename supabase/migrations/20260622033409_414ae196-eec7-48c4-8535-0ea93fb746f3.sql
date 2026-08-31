@@ -20,8 +20,21 @@ CREATE POLICY oe_self_insert ON public.order_events
 
 -- 5. Realtime: deny topic subscriptions by default (app uses postgres_changes only,
 -- which is governed by table RLS — broadcast/presence topics stay locked).
-ALTER TABLE realtime.messages ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS deny_all_realtime_topics ON realtime.messages;
-CREATE POLICY deny_all_realtime_topics ON realtime.messages
-  FOR ALL TO authenticated, anon
-  USING (false) WITH CHECK (false);
+-- Guarded: on managed Supabase realtime.messages is owned by supabase_realtime_admin,
+-- and postgres cannot SET ROLE to it, so apply the deny policy only when the current
+-- role owns the table. With RLS enabled and no permissive policy, broadcast/presence
+-- topics are denied either way.
+DO $$
+BEGIN
+  IF to_regclass('realtime.messages') IS NOT NULL
+     AND EXISTS (
+       SELECT 1 FROM pg_class c
+       JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE n.nspname = 'realtime' AND c.relname = 'messages'
+         AND c.relowner = (SELECT oid FROM pg_roles WHERE rolname = current_user)
+     ) THEN
+    EXECUTE 'ALTER TABLE realtime.messages ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'DROP POLICY IF EXISTS deny_all_realtime_topics ON realtime.messages';
+    EXECUTE 'CREATE POLICY deny_all_realtime_topics ON realtime.messages FOR ALL TO authenticated, anon USING (false) WITH CHECK (false)';
+  END IF;
+END $$;
