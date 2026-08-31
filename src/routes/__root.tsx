@@ -77,9 +77,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Hermes auto-trades Telegram crypto signals across your exchanges with built-in risk controls.",
+          "AI TRED AGENT auto-trades Telegram crypto signals across your exchanges with built-in risk controls.",
       },
-      { name: "author", content: "Hermes" },
+      { name: "author", content: "AI TRED AGENT" },
       { property: "og:title", content: "Automated Crypto Signal Trading" },
       {
         property: "og:description",
@@ -95,7 +95,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "theme-color", content: "#0b1220" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "apple-mobile-web-app-title", content: "Hermes" },
+      { name: "apple-mobile-web-app-title", content: "AI TRED AGENT" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

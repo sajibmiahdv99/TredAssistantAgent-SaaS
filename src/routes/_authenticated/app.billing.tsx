@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getBilling } from "@/lib/user.functions";
+import { CryptoPay } from "@/components/CryptoPay";
 
 const opts = queryOptions({ queryKey: ["billing"], queryFn: () => getBilling() });
 
@@ -26,6 +27,7 @@ function Page() {
   return (
     <>
       <PageHeader title="Billing" subtitle="Subscription, invoices and available plans." />
+      <CryptoPay />
       <Card className="mb-6">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">
           Current subscription

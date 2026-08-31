@@ -1,6 +1,6 @@
 # White-Label Groundwork
 
-Hermes ships branding as a small config layer so a remixed instance can be
+AI TRED AGENT ships branding as a small config layer so a remixed instance can be
 re-skinned by setting env vars instead of grepping the codebase. This is
 **groundwork only** — it does not provision new instances, deploy anything,
 or share anything across instances.
@@ -8,7 +8,7 @@ or share anything across instances.
 ## What is config-driven today
 
 Four shell / nav / auth surfaces read from `src/lib/brand.ts`, which reads
-Vite env vars with defaults that reproduce the original Hermes strings
+Vite env vars with defaults that reproduce the AI TRED AGENT strings
 byte-for-byte:
 
 - `src/lib/brand.ts` — the single `BRAND` object.
@@ -19,13 +19,13 @@ byte-for-byte:
 
 Environment variables (all optional; defaults in parentheses):
 
-| Variable                   | Default                    |
-| -------------------------- | -------------------------- |
-| `VITE_BRAND_NAME`          | `Hermes`                   |
-| `VITE_BRAND_TAGLINE`       | `Workstation`              |
-| `VITE_BRAND_LOGO_INITIAL`  | `H`                        |
-| `VITE_BRAND_ADMIN_INITIAL` | `A`                        |
-| `VITE_BRAND_FOOTER_NAME`   | `Hermes Agent Workstation` |
+| Variable                   | Default                      |
+| -------------------------- | ---------------------------- |
+| `VITE_BRAND_NAME`          | `AI TRED AGENT`              |
+| `VITE_BRAND_TAGLINE`       | `Automated Crypto Signal Trading` |
+| `VITE_BRAND_LOGO_INITIAL`  | `A`                          |
+| `VITE_BRAND_ADMIN_INITIAL` | `A`                          |
+| `VITE_BRAND_FOOTER_NAME`   | `AI TRED AGENT`              |
 
 Setting none of these leaves the app pixel-for-pixel identical to today.
 

@@ -23,7 +23,7 @@ async function makeClient(sessionString = "") {
   const client = new TelegramClient(session, apiId, apiHash, {
     connectionRetries: 2,
     useWSS: true,
-    deviceModel: "Hermes",
+    deviceModel: "AI TRED AGENT",
     appVersion: "1.0",
     systemVersion: "web",
   });

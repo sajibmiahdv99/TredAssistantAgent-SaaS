@@ -7,17 +7,17 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/affiliate")({
   head: () => ({
     meta: [
-      { title: "Affiliate Program — Hermes" },
+      { title: "Affiliate Program — AI TRED AGENT" },
       {
         name: "description",
         content:
-          "Earn 30% / 10% / 5% recurring multi-level commissions by referring traders to Hermes. Monthly payouts in USDT or bank transfer. Join free.",
+          "Earn 30% / 10% / 5% recurring multi-level commissions by referring traders to AI TRED AGENT. Monthly payouts in USDT or bank transfer. Join free.",
       },
-      { property: "og:title", content: "Affiliate Program — Hermes" },
+      { property: "og:title", content: "Affiliate Program — AI TRED AGENT" },
       {
         property: "og:description",
         content:
-          "Earn 30% / 10% / 5% recurring multi-level commissions by referring traders to Hermes.",
+          "Earn 30% / 10% / 5% recurring multi-level commissions by referring traders to AI TRED AGENT.",
       },
     ],
   }),
@@ -52,7 +52,7 @@ const steps = [
   {
     n: "01",
     t: "Join the program",
-    d: "Sign up for a free Hermes account and activate your affiliate dashboard. No minimum volume, no approval process.",
+    d: "Sign up for a free AI TRED AGENT account and activate your affiliate dashboard. No minimum volume, no approval process.",
   },
   {
     n: "02",
@@ -110,7 +110,7 @@ function Page() {
             Turn your audience into <span className="text-primary">monthly income</span>.
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground">
-            Every trader needs risk management. Share Hermes with your audience and earn 30% / 10% /
+            Every trader needs risk management. Share AI TRED AGENT with your audience and earn 30% / 10% /
             5% recurring commissions across three levels — paid monthly, for as long as your
             referrals stay subscribed.
           </p>
@@ -194,7 +194,7 @@ function Page() {
       {/* Benefits */}
       <section className="mx-auto max-w-7xl px-6 pb-20">
         <div className="text-center">
-          <h2 className="text-3xl font-semibold tracking-tight">Why affiliates love Hermes</h2>
+          <h2 className="text-3xl font-semibold tracking-tight">Why affiliates love AI TRED AGENT</h2>
         </div>
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {benefits.map((b) => {

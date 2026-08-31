@@ -6,17 +6,17 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/terms")({
   head: () => ({
     meta: [
-      { title: "Terms of Service — Hermes" },
+      { title: "Terms of Service — AI TRED AGENT" },
       {
         name: "description",
         content:
-          "Terms of Service governing the use of Hermes automated crypto signal trading platform — including risk disclosure, acceptable use, subscriptions, liability limits, and governing law.",
+          "Terms of Service governing the use of AI TRED AGENT automated crypto signal trading platform — including risk disclosure, acceptable use, subscriptions, liability limits, and governing law.",
       },
-      { property: "og:title", content: "Terms of Service — Hermes" },
+      { property: "og:title", content: "Terms of Service — AI TRED AGENT" },
       {
         property: "og:description",
         content:
-          "Terms of Service governing the use of Hermes automated crypto signal trading platform.",
+          "Terms of Service governing the use of AI TRED AGENT automated crypto signal trading platform.",
       },
     ],
   }),
@@ -28,13 +28,13 @@ const sections = [
     icon: FileText,
     title: "1. Acceptance of Terms",
     content:
-      'By accessing or using the Hermes platform ("the Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you must not use the Service. We may update these Terms from time to time; material changes will be communicated via email and in-app notification at least 14 days before taking effect. Continued use of the Service after the effective date constitutes acceptance of the updated Terms.',
+      'By accessing or using the AI TRED AGENT platform ("the Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you must not use the Service. We may update these Terms from time to time; material changes will be communicated via email and in-app notification at least 14 days before taking effect. Continued use of the Service after the effective date constitutes acceptance of the updated Terms.',
   },
   {
     icon: FileText,
     title: "2. Description of Service & Eligibility",
     content:
-      "Hermes provides an automated trading workstation that parses signals from Telegram channels and executes trades on third-party cryptocurrency exchanges. The Service is available to individuals and legal entities that are at least 18 years old (or the age of majority in their jurisdiction) and have the legal capacity to enter into binding contracts. By using the Service, you represent that you meet these eligibility requirements. The Service is not available in jurisdictions where automated crypto trading is prohibited.",
+      "AI TRED AGENT provides an automated trading workstation that parses signals from Telegram channels and executes trades on third-party cryptocurrency exchanges. The Service is available to individuals and legal entities that are at least 18 years old (or the age of majority in their jurisdiction) and have the legal capacity to enter into binding contracts. By using the Service, you represent that you meet these eligibility requirements. The Service is not available in jurisdictions where automated crypto trading is prohibited.",
   },
   {
     icon: Shield,
@@ -70,7 +70,7 @@ const sections = [
     icon: Shield,
     title: "8. Intellectual Property",
     content:
-      "The Service, including its software, design, text, graphics, logos, and underlying technology, is the intellectual property of Hermes Agent Workstation and its licensors. You are granted a limited, non-exclusive, non-transferable, revocable license to use the Service in accordance with these Terms. You may not copy, modify, distribute, sell, or lease any part of the Service. Any feedback you provide about the Service may be used without compensation or obligation to you.",
+      "The Service, including its software, design, text, graphics, logos, and underlying technology, is the intellectual property of AI TRED AGENT, its licensors. You are granted a limited, non-exclusive, non-transferable, revocable license to use the Service in accordance with these Terms. You may not copy, modify, distribute, sell, or lease any part of the Service. Any feedback you provide about the Service may be used without compensation or obligation to you.",
   },
   {
     icon: AlertTriangle,
@@ -82,13 +82,13 @@ const sections = [
     icon: AlertTriangle,
     title: "10. Limitation of Liability",
     content:
-      "TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL HERMES AGENT WORKSTATION, ITS AFFILIATES, DIRECTORS, OFFICERS, EMPLOYEES, OR AGENTS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, LOSS OF TRADING CAPITAL, LOSS OF DATA, OR BUSINESS INTERRUPTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OF THE SERVICE. OUR TOTAL LIABILITY FOR ANY CLAIM ARISING FROM THESE TERMS OR THE SERVICE SHALL NOT EXCEED THE TOTAL AMOUNT PAID BY YOU TO US IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM.",
+      "TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL AI TRED AGENT, ITS AFFILIATES, DIRECTORS, OFFICERS, EMPLOYEES, OR AGENTS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, LOSS OF TRADING CAPITAL, LOSS OF DATA, OR BUSINESS INTERRUPTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OF THE SERVICE. OUR TOTAL LIABILITY FOR ANY CLAIM ARISING FROM THESE TERMS OR THE SERVICE SHALL NOT EXCEED THE TOTAL AMOUNT PAID BY YOU TO US IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM.",
   },
   {
     icon: Shield,
     title: "11. Indemnification",
     content:
-      "You agree to indemnify, defend, and hold harmless Hermes Agent Workstation, its affiliates, and their respective officers, directors, employees, and agents from and against any claims, liabilities, damages, losses, and expenses (including reasonable legal fees) arising out of or related to: (a) your use of the Service; (b) your violation of these Terms; (c) your violation of any applicable law or regulation; (d) your trading activity conducted through the Service; or (e) any dispute between you and a third-party exchange connected through the Service.",
+      "You agree to indemnify, defend, and hold harmless AI TRED AGENT, its affiliates, and their respective officers, directors, employees, and agents from and against any claims, liabilities, damages, losses, and expenses (including reasonable legal fees) arising out of or related to: (a) your use of the Service; (b) your violation of these Terms; (c) your violation of any applicable law or regulation; (d) your trading activity conducted through the Service; or (e) any dispute between you and a third-party exchange connected through the Service.",
   },
   {
     icon: Ban,
@@ -106,7 +106,7 @@ const sections = [
     icon: Mail,
     title: "14. Contact",
     content:
-      "For questions about these Terms, please contact us at: legal@hermesagent.com. Notices of legal process should be sent to: Hermes Agent Workstation, Attn: Legal, 100 Crypto Street, Suite 200, San Francisco, CA 94105, USA. These Terms were last updated on August 1, 2026.",
+      "For questions about these Terms, please contact us at: legal@aitredagent.com. Notices of legal process should be sent to: AI TRED AGENT, Attn: Legal, 100 Crypto Street, Suite 200, San Francisco, CA 94105, USA. These Terms were last updated on August 1, 2026.",
   },
 ];
 
@@ -126,7 +126,7 @@ function Page() {
             Terms of <span className="text-primary">Service</span>.
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground">
-            These Terms govern your use of the Hermes platform. Please read them carefully — by
+            These Terms govern your use of the AI TRED AGENT platform. Please read them carefully — by
             using the Service, you agree to be bound by them.
           </p>
         </div>

@@ -18,13 +18,13 @@ import { PublicNav, PublicFooter } from "@/components/PublicNav";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Hermes — Automated Crypto Signal Trading Workstation" },
+      { title: "AI TRED AGENT — Automated Crypto Signal Trading Workstation" },
       {
         name: "description",
         content:
-          "Hermes auto-trades Telegram signals across Binance, Bybit, OKX and more — with adaptive risk engine, real-time monitoring, and full backtesting. Start free.",
+          "AI TRED AGENT auto-trades Telegram signals across Binance, Bybit, OKX and more — with adaptive risk engine, real-time monitoring, and full backtesting. Start free.",
       },
-      { property: "og:title", content: "Hermes — Automated Crypto Signal Trading" },
+      { property: "og:title", content: "AI TRED AGENT — Automated Crypto Signal Trading" },
       {
         property: "og:description",
         content: "Auto-trade Telegram signals across your exchanges with built-in risk controls.",
@@ -98,7 +98,7 @@ const steps = [
   },
   {
     n: "03",
-    t: "Let Hermes trade",
+    t: "Let AI TRED AGENT trade",
     d: "The risk engine sizes every order, the executor places it, and the monitor manages exits.",
   },
 ];
@@ -114,7 +114,7 @@ const testimonials = [
   {
     name: "Priya S.",
     role: "Signal group operator",
-    text: "I run three channels through Hermes for my subscribers. The per-channel risk overrides and backtests are exactly what I needed.",
+    text: "I run three channels through AI TRED AGENT for my subscribers. The per-channel risk overrides and backtests are exactly what I needed.",
   },
   {
     name: "David L.",
@@ -140,7 +140,7 @@ function Landing() {
             control.
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground">
-            Hermes parses Telegram trading signals, enforces your risk rules, and executes across
+            AI TRED AGENT parses Telegram trading signals, enforces your risk rules, and executes across
             your exchange accounts — all in one workstation.
           </p>
           <div className="mt-8 flex justify-center gap-3">

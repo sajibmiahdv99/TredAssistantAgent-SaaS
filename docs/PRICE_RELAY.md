@@ -1,6 +1,6 @@
-# Hermes Price Relay Contract
+# AI TRED AGENT Price Relay Contract
 
-Hermes runs on Node.js / a self-hosted server — edge runtime cannot
+AI TRED AGENT runs on Node.js / a self-hosted server — edge runtime cannot
 hold long-lived outbound WebSocket connections, so the app can't subscribe
 directly to Binance / Bybit ticker streams. Position monitoring
 (`src/routes/api/public/hooks/monitor-positions.ts`) therefore falls back
@@ -64,7 +64,7 @@ themselves; the app's edge runtime cannot host it.
 // price-relay.mjs
 // Environment:
 //   HERMES_BASE_URL       e.g. https://your-deployed-domain.example.com
-//   PRICE_RELAY_SECRET    matches the value set in the Hermes backend
+//   PRICE_RELAY_SECRET    matches the value set in the AI TRED AGENT backend
 //   RELAY_SYMBOLS         comma list, uppercase, e.g. "BTCUSDT,ETHUSDT,SOLUSDT"
 //   FLUSH_INTERVAL_MS     optional, default 1500
 
@@ -216,7 +216,7 @@ console.log(`relay started for ${SYMBOLS.length} symbols`);
 
 ```bash
 export HERMES_BASE_URL="https://your-deployed-domain.example.com"
-export PRICE_RELAY_SECRET="..."           # same value stored in Hermes secrets
+export PRICE_RELAY_SECRET="..."           # same value stored in AI TRED AGENT secrets
 export RELAY_SYMBOLS="BTCUSDT,ETHUSDT,SOLUSDT"
 node price-relay.mjs   # or: bun price-relay.mjs
 ```

@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { PageHeader, EmptyState } from "@/components/PageHeader";
 import {
   Table,
@@ -10,7 +12,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { adminListSubscriptions } from "@/lib/admin.functions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { adminListSubscriptions, adminGrantSubscription } from "@/lib/admin.functions";
 
 const opts = queryOptions({
   queryKey: ["admin", "subscriptions"],
@@ -23,6 +43,79 @@ export const Route = createFileRoute("/_authenticated/admin/subscriptions")({
   errorComponent: ({ error }) => <p className="text-sm text-destructive">{error.message}</p>,
   notFoundComponent: () => <p>Not found.</p>,
 });
+
+function GrantDialog({ subscriptionId }: { subscriptionId: string }) {
+  const qc = useQueryClient();
+  const grantFn = useServerFn(adminGrantSubscription);
+  const [planCode, setPlanCode] = useState("premium");
+  const [months, setMonths] = useState("1");
+  const [error, setError] = useState<string | null>(null);
+
+  const grant = useMutation({
+    mutationFn: () =>
+      grantFn({
+        data: {
+          subscriptionId,
+          planCode,
+          billingInterval: "monthly",
+          months: Math.max(1, parseInt(months) || 1),
+        },
+      }),
+    onSuccess: () => {
+      setError(null);
+      qc.invalidateQueries({ queryKey: ["admin", "subscriptions"] });
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          Grant
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Grant manual access</DialogTitle>
+          <DialogDescription>
+            Activate this subscription manually (e.g. payment verified off-platform).
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Plan</label>
+            <Select value={planCode} onValueChange={setPlanCode}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="starter">Starter</SelectItem>
+                <SelectItem value="premium">Premium</SelectItem>
+                <SelectItem value="professional">Professional</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Months</label>
+            <Input
+              type="number"
+              min={1}
+              value={months}
+              onChange={(e) => setMonths(e.target.value)}
+            />
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+        </div>
+        <DialogFooter>
+          <Button onClick={() => grant.mutate()} disabled={grant.isPending}>
+            {grant.isPending ? "Activating…" : "Activate"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function Page() {
   const { data } = useSuspenseQuery(opts);
@@ -41,6 +134,7 @@ function Page() {
                 <TableHead>Interval</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Renews</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -58,6 +152,9 @@ function Page() {
                     {s.current_period_ends_at
                       ? new Date(s.current_period_ends_at).toLocaleDateString()
                       : "—"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <GrantDialog subscriptionId={s.id} />
                   </TableCell>
                 </TableRow>
               ))}

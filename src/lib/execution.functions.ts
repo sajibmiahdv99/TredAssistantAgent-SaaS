@@ -1,6 +1,6 @@
 // Execution queue interface and order lifecycle management.
 //
-// Hermes MT5 / exchange execution cannot run on edge Workers. An external
+// AI TRED AGENT MT5 / exchange execution cannot run on edge Workers. An external
 // self-hosted worker polls `claimQueuedOrders`, places the order with the
 // broker, then calls `reportExecution` to update fill state. See
 // docs/EXECUTION_WORKER.md for the full contract.

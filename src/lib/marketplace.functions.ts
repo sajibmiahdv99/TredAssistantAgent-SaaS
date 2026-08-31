@@ -406,7 +406,7 @@ export const listPublishedStrategies = createServerFn({ method: "GET" })
       owner_user_id: r.owner_user_id,
       owner_display_name: r.owner_user_id
         ? (ownerNames.get(r.owner_user_id) ?? "Trader")
-        : "Hermes",
+        : "AI TRED AGENT",
       published_at: r.published_at,
       is_owner: r.owner_user_id === context.userId,
       is_subscribed: mySubs.has(r.id),

@@ -104,7 +104,7 @@ loop forever:
     sleep(2)
 ```
 
-A reference Python implementation lives in the original Hermes repo under
+A reference Python implementation lives in the original AI TRED AGENT repo under
 `backend/services/mt5_bridge.py`; it can be ported to call the two RPCs
 above instead of writing to the Express API.
 

@@ -38,7 +38,7 @@
 
 :root {
   --radius: 0.75rem;
-  /* Dark by default — Hermes is a trading workstation */
+  /* Dark by default — AI TRED AGENT is a trading workstation */
   --background: oklch(0.16 0.02 250);
   --foreground: oklch(0.96 0.005 250);
   --card: oklch(0.2 0.02 250);

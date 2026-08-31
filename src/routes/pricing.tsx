@@ -23,22 +23,24 @@ import {
 export const Route = createFileRoute("/pricing")({
   head: () => ({
     meta: [
-      { title: "Pricing — Hermes" },
+      { title: "Pricing — AI TRED AGENT" },
       {
         name: "description",
         content:
-          "Start free, upgrade to Pro for $49/month, or build a custom Enterprise plan. Every tier includes signal parsing, a risk engine, and encrypted API keys.",
+          "Start free with paper trading, then upgrade to Starter $29/month, Premium $79/month, or a custom Professional plan. Every tier includes signal parsing, a risk engine, and encrypted API keys.",
       },
-      { property: "og:title", content: "Pricing — Hermes" },
+      { property: "og:title", content: "Pricing — AI TRED AGENT" },
       {
         property: "og:description",
-        content: "Start free, upgrade to Pro for $49/month, or build a custom Enterprise plan.",
+        content:
+          "Start free, upgrade to Starter $29/month, Premium $79/month, or a custom Professional plan.",
       },
     ],
   }),
   component: Page,
 });
 
+// Plan set mirrors src/lib/billing.functions.ts → getPricingPlans (single source).
 const tiers = [
   {
     name: "Free",
@@ -58,38 +60,50 @@ const tiers = [
     popular: false,
   },
   {
-    name: "Pro",
-    price: "$49",
+    name: "Starter",
+    price: "$29",
     period: "/month",
-    description: "Go live with AI-powered parsing, full risk automation, and server-side exits.",
+    description: "Get started with automated trading signals.",
     features: [
       "Live + paper trading",
       "Up to 3 exchange accounts",
-      "Unlimited signal channels",
-      "AI + regex signal parsing",
-      "Full adaptive risk engine",
-      "Server-side TP/SL, trailing stops & timeouts",
-      "Unlimited backtesting (90 days of klines)",
-      "Analytics & symbol heat map",
+      "Up to 20 trades / day",
+      "3 open positions",
+      "10% max trade size",
+      "Basic signals",
+    ],
+    cta: "Get started",
+    popular: false,
+  },
+  {
+    name: "Premium",
+    price: "$79",
+    period: "/month",
+    description: "For active traders who need more capacity.",
+    features: [
+      "Live + paper trading",
+      "Up to 10 exchange accounts",
+      "Up to 50 trades / day",
+      "10 open positions",
+      "25% max trade size",
+      "Premium signals",
       "Priority support",
     ],
-    cta: "Start free trial",
+    cta: "Get started",
     popular: true,
   },
   {
-    name: "Enterprise",
-    price: "Custom",
-    period: "",
-    description: "For teams and institutions that need scale, control, and compliance.",
+    name: "Professional",
+    price: "$199",
+    period: "/month",
+    description: "Maximum performance and unlimited capacity.",
     features: [
-      "Unlimited exchange accounts & channels",
-      "Multi-user team workspace with roles",
+      "Unlimited trades & exchange accounts",
+      "50 open positions",
+      "50% max trade size",
+      "All signals & sources",
+      "Dedicated support",
       "Custom risk rules & audit logs",
-      "MT5 / DEX integration",
-      "SSO / SAML",
-      "Dedicated account manager",
-      "Custom SLA",
-      "On-premise deployment option",
     ],
     cta: "Contact sales",
     popular: false,
@@ -101,35 +115,122 @@ type CellValue = string | boolean;
 const comparisonRows: {
   feature: string;
   free: CellValue;
-  pro: CellValue;
-  enterprise: CellValue;
+  starter: CellValue;
+  premium: CellValue;
+  professional: CellValue;
 }[] = [
-  { feature: "Trading mode", free: "Paper only", pro: "Paper + Live", enterprise: "Paper + Live" },
-  { feature: "Exchange accounts", free: "1", pro: "Up to 3", enterprise: "Unlimited" },
-  { feature: "Signal channels", free: "1", pro: "Unlimited", enterprise: "Unlimited" },
-  { feature: "Signal parser", free: "Regex", pro: "AI + Regex", enterprise: "AI + Regex" },
-  { feature: "Adaptive risk engine", free: "Basic", pro: "Full", enterprise: "Custom" },
-  { feature: "Server-side exits (TP/SL)", free: false, pro: true, enterprise: true },
-  { feature: "Backtest history", free: "30 days", pro: "90 days", enterprise: "Custom" },
-  { feature: "Analytics & heat map", free: false, pro: true, enterprise: true },
-  { feature: "Team workspace", free: false, pro: false, enterprise: true },
-  { feature: "Priority support", free: false, pro: true, enterprise: true },
-  { feature: "Dedicated account manager", free: false, pro: false, enterprise: true },
-  { feature: "On-premise deployment", free: false, pro: false, enterprise: true },
+  {
+    feature: "Trading mode",
+    free: "Paper only",
+    starter: "Paper + Live",
+    premium: "Paper + Live",
+    professional: "Paper + Live",
+  },
+  {
+    feature: "Exchange accounts",
+    free: "1",
+    starter: "Up to 3",
+    premium: "Up to 10",
+    professional: "Unlimited",
+  },
+  {
+    feature: "Trades / day",
+    free: "—",
+    starter: "Up to 20",
+    premium: "Up to 50",
+    professional: "Unlimited",
+  },
+  {
+    feature: "Open positions",
+    free: "—",
+    starter: "3",
+    premium: "10",
+    professional: "50",
+  },
+  {
+    feature: "Max trade size",
+    free: "—",
+    starter: "10%",
+    premium: "25%",
+    professional: "50%",
+  },
+  {
+    feature: "Signal parser",
+    free: "Regex",
+    starter: "Regex",
+    premium: "AI + Regex",
+    professional: "AI + Regex",
+  },
+  {
+    feature: "Adaptive risk engine",
+    free: "Basic",
+    starter: "Full",
+    premium: "Full",
+    professional: "Custom",
+  },
+  {
+    feature: "Server-side exits (TP/SL)",
+    free: false,
+    starter: true,
+    premium: true,
+    professional: true,
+  },
+  {
+    feature: "Backtest history",
+    free: "30 days",
+    starter: "30 days",
+    premium: "90 days",
+    professional: "Unlimited",
+  },
+  {
+    feature: "Analytics & heat map",
+    free: false,
+    starter: false,
+    premium: true,
+    professional: true,
+  },
+  {
+    feature: "Team workspace",
+    free: false,
+    starter: false,
+    premium: false,
+    professional: true,
+  },
+  {
+    feature: "Priority support",
+    free: false,
+    starter: false,
+    premium: true,
+    professional: true,
+  },
+  {
+    feature: "Dedicated account manager",
+    free: false,
+    starter: false,
+    premium: false,
+    professional: true,
+  },
+  {
+    feature: "On-premise deployment",
+    free: false,
+    starter: false,
+    premium: false,
+    professional: true,
+  },
 ];
 
 const faqTeasers = [
   {
-    q: "Can I cancel my Pro subscription anytime?",
-    a: "Yes. Cancel from your billing page at any moment — Pro access continues until the end of the paid period, no questions asked.",
+    q: "Can I cancel my paid plan anytime?",
+    a: "Yes. Cancel from your billing page at any moment — paid access continues until the end of the current period, no questions asked.",
   },
   {
-    q: "Is there a free trial?",
-    a: "Every new account gets a 7-day Premium trial with full Pro features. No credit card required.",
+    q: "Do I need a credit card to start?",
+    a: "No. Start with free paper trading with no card required. Upgrade only when you're ready to trade live.",
   },
   {
     q: "What payment methods do you accept?",
-    a: "Credit and debit cards via Stripe. Enterprise customers can also pay by USDT, wire transfer, or invoice.",
+    a: "Crypto (USDT on TRC-20) paid to our Trust Wallet, bank transfer, or wire. We'll send you an address and verify your deposit on-chain.",
   },
 ];
 
@@ -159,15 +260,16 @@ function Page() {
             Pay for automation, <span className="text-primary">not for hype</span>.
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground">
-            Start with free paper trading. Upgrade to Pro when you're ready to go live. Every paid
-            plan includes a 7-day free trial — no credit card required.
+            Start with free paper trading — no credit card needed. Upgrade to Starter, Premium, or
+            Professional when you're ready to go live. Pay with USDT (TRC-20) to our Trust Wallet,
+            bank transfer, or invoice.
           </p>
         </div>
       </section>
 
       {/* Tiers */}
       <section className="mx-auto max-w-6xl px-6 pb-20">
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-4">
           {tiers.map((tier) => (
             <Card
               key={tier.name}
@@ -199,9 +301,9 @@ function Page() {
                 </ul>
               </CardContent>
               <CardFooter>
-                {tier.name === "Enterprise" ? (
+                {tier.name === "Professional" ? (
                   <Button asChild variant="outline" className="w-full">
-                    <a href="mailto:sales@hermesagent.com?subject=Enterprise%20plan%20inquiry">
+                    <a href="mailto:sales@aitredagent.com?subject=Professional%20plan%20inquiry">
                       <Mail className="h-4 w-4" /> Contact sales
                     </a>
                   </Button>
@@ -237,8 +339,9 @@ function Page() {
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-1/2 bg-card/60">Feature</TableHead>
                 <TableHead className="text-center">Free</TableHead>
-                <TableHead className="text-center text-primary">Pro</TableHead>
-                <TableHead className="text-center">Enterprise</TableHead>
+                <TableHead className="text-center">Starter</TableHead>
+                <TableHead className="text-center text-primary">Premium</TableHead>
+                <TableHead className="text-center">Professional</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -249,10 +352,13 @@ function Page() {
                     <Cell value={row.free} />
                   </TableCell>
                   <TableCell>
-                    <Cell value={row.pro} />
+                    <Cell value={row.starter} />
                   </TableCell>
                   <TableCell>
-                    <Cell value={row.enterprise} />
+                    <Cell value={row.premium} />
+                  </TableCell>
+                  <TableCell>
+                    <Cell value={row.professional} />
                   </TableCell>
                 </TableRow>
               ))}

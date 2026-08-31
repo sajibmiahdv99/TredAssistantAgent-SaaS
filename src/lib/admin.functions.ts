@@ -137,6 +137,43 @@ export const adminListPayments = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+// ============ Manual subscription grant (manual override) ============
+// Lets an admin activate a subscription manually — e.g. to approve a Trust Wallet
+// payment that arrived but failed auto-verify, or to grant complimentary access.
+export const adminGrantSubscription = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        subscriptionId: z.string().uuid(),
+        planCode: z.string().min(1).max(32),
+        billingInterval: z.enum(["monthly", "yearly"]).default("monthly"),
+        months: z.number().int().min(1).max(60).default(1),
+        notes: z.string().max(500).optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const start = new Date();
+    const end = new Date(start);
+    end.setMonth(end.getMonth() + data.months);
+    const { error } = await context.supabase
+      .from("subscriptions")
+      .update({
+        plan_code: data.planCode,
+        status: "active",
+        billing_interval: data.billingInterval,
+        current_period_starts_at: start.toISOString(),
+        current_period_ends_at: end.toISOString(),
+        auto_renew: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.subscriptionId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // ============ Sources ============
 export const adminListSources = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

@@ -84,7 +84,7 @@ echo "==> [5/6] Branding (env-driven — see docs/WHITE_LABEL.md)"
 # VITE_BRAND_* vars are read by src/lib/brand.ts at build time.
 cat >> .env << EOF
 
-# White-label branding (optional; defaults reproduce 'Hermes')
+# White-label branding (optional; defaults reproduce 'AI TRED AGENT')
 VITE_BRAND_NAME=$BRAND
 VITE_BRAND_TAGLINE=Automated Signal Trading
 VITE_BRAND_LOGO_INITIAL=${BRAND:0:1}

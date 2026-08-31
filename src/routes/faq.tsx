@@ -12,17 +12,17 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/faq")({
   head: () => ({
     meta: [
-      { title: "FAQ — Hermes" },
+      { title: "FAQ — AI TRED AGENT" },
       {
         name: "description",
         content:
-          "Answers to common questions about Hermes — signal parsing, exchange API key safety, the risk engine, backtesting, subscriptions, the affiliate program, and more.",
+          "Answers to common questions about AI TRED AGENT — signal parsing, exchange API key safety, the risk engine, backtesting, subscriptions, the affiliate program, and more.",
       },
-      { property: "og:title", content: "FAQ — Hermes" },
+      { property: "og:title", content: "FAQ — AI TRED AGENT" },
       {
         property: "og:description",
         content:
-          "Answers to common questions about Hermes signal trading, risk controls, and subscriptions.",
+          "Answers to common questions about AI TRED AGENT signal trading, risk controls, and subscriptions.",
       },
     ],
   }),
@@ -32,13 +32,13 @@ export const Route = createFileRoute("/faq")({
 const faqs = [
   {
     value: "what-is-hermes",
-    q: "What is Hermes?",
-    a: "Hermes is an automated crypto signal trading workstation. It parses trading signals from Telegram channels using a hybrid AI-plus-regex engine, enforces your risk rules, and executes trades across your exchange accounts — all in one place. You can run in paper trading mode to test strategies, then switch to live execution when you're ready.",
+    q: "What is AI TRED AGENT?",
+    a: "AI TRED AGENT is an automated crypto signal trading workstation. It parses trading signals from Telegram channels using a hybrid AI-plus-regex engine, enforces your risk rules, and executes trades across your exchange accounts — all in one place. You can run in paper trading mode to test strategies, then switch to live execution when you're ready.",
   },
   {
     value: "signal-parsing",
     q: "How does signal parsing work?",
-    a: "Hermes uses a two-layer approach: a regex-based parser extracts structured fields (symbol, direction, entry price, stop-loss, take-profit targets) from common signal formats, and an AI parser (optional, Pro tier) handles free-form or inconsistent signal text. The system learns from corrections and adapts to your channels over time. You can preview how every signal is parsed in the sources panel before it triggers a trade.",
+    a: "AI TRED AGENT uses a two-layer approach: a regex-based parser extracts structured fields (symbol, direction, entry price, stop-loss, take-profit targets) from common signal formats, and an AI parser (optional, Pro tier) handles free-form or inconsistent signal text. The system learns from corrections and adapts to your channels over time. You can preview how every signal is parsed in the sources panel before it triggers a trade.",
   },
   {
     value: "api-key-safety",
@@ -63,7 +63,7 @@ const faqs = [
   {
     value: "kyc",
     q: "Do I need to complete KYC?",
-    a: "Hermes does not require KYC or identity verification to use the platform. However, the crypto exchanges you connect to may have their own KYC requirements — you must comply with those. We only ask for an email address at signup so we can send you account notifications and receipts.",
+    a: "AI TRED AGENT does not require KYC or identity verification to use the platform. However, the crypto exchanges you connect to may have their own KYC requirements — you must comply with those. We only ask for an email address at signup so we can send you account notifications and receipts.",
   },
   {
     value: "subscription-cancel",
@@ -73,12 +73,12 @@ const faqs = [
   {
     value: "affiliate-program",
     q: "How does the affiliate program work?",
-    a: "The Hermes affiliate program pays 30% commission on referred customers' subscription revenue (Level 1), 10% on referrals made by your referrals (Level 2), and 5% on a third level. Commissions are recurring monthly for as long as your referrals remain active subscribers. Payouts are processed monthly in USDT (TRC-20 or ERC-20) or via bank transfer, with a minimum threshold of $50. You can track your referrals, earnings, and payouts from the affiliate dashboard.",
+    a: "The AI TRED AGENT affiliate program pays 30% commission on referred customers' subscription revenue (Level 1), 10% on referrals made by your referrals (Level 2), and 5% on a third level. Commissions are recurring monthly for as long as your referrals remain active subscribers. Payouts are processed monthly in USDT (TRC-20 or ERC-20) or via bank transfer, with a minimum threshold of $50. You can track your referrals, earnings, and payouts from the affiliate dashboard.",
   },
   {
     value: "paper-trading",
     q: "What is paper trading and how do I use it?",
-    a: "Paper trading simulates live execution with virtual funds — no real money is at risk. Hermes generates a virtual balance, processes signals through the same risk engine and execution pipeline, and reports fills, PnL, and portfolio stats as if trades were real. It's the best way to evaluate a signal channel or test a risk configuration before going live. You can switch between paper and live mode per account or use a dedicated paper trading API key from your exchange.",
+    a: "Paper trading simulates live execution with virtual funds — no real money is at risk. AI TRED AGENT generates a virtual balance, processes signals through the same risk engine and execution pipeline, and reports fills, PnL, and portfolio stats as if trades were real. It's the best way to evaluate a signal channel or test a risk configuration before going live. You can switch between paper and live mode per account or use a dedicated paper trading API key from your exchange.",
   },
 ];
 
@@ -98,7 +98,7 @@ function Page() {
             Frequently asked <span className="text-primary">questions</span>.
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground">
-            Everything you need to know about Hermes — from signal parsing and API key security to
+            Everything you need to know about AI TRED AGENT — from signal parsing and API key security to
             subscriptions, backtesting, and the affiliate program.
           </p>
         </div>
@@ -135,7 +135,7 @@ function Page() {
           </p>
           <div className="mt-6 flex justify-center gap-3">
             <Button asChild variant="outline">
-              <a href="mailto:support@hermesagent.com">Email support</a>
+              <a href="mailto:support@aitredagent.com">Email support</a>
             </Button>
             <Button asChild>
               <Link to="/auth" search={{ mode: "signup" } as never}>

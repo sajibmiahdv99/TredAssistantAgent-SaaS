@@ -613,7 +613,7 @@ function Page() {
       {tgAccounts.length === 0 ? (
         <EmptyState
           title="No Telegram accounts connected"
-          description="Connect a Telegram account so Hermes can listen for signals from your channels."
+          description="Connect a Telegram account so AI TRED AGENT can listen for signals from your channels."
         />
       ) : (
         <div className="grid gap-3">
@@ -998,7 +998,7 @@ function Page() {
               </DialogTitle>
               <DialogDescription>
                 Paste this as the Webhook URL in your TradingView alert. Set the alert message to
-                the same signal format Hermes already understands, e.g.{" "}
+                the same signal format AI TRED AGENT already understands, e.g.{" "}
                 <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
                   BTCUSDT LONG entry {"{{close}}"} SL 66800 TP1 68000 TP2 69000 lev 10x
                 </code>
@@ -1045,11 +1045,11 @@ function Page() {
       )}
 
       {/* Curated */}
-      <SectionHeader title="Hermes Curated" subtitle="Signal sources managed by the Hermes team." />
+      <SectionHeader title="AI TRED AGENT Curated" subtitle="Signal sources managed by the AI TRED AGENT team." />
       {platform.length === 0 ? (
         <EmptyState
           title="No curated sources yet"
-          description="Hermes-managed sources will appear here."
+          description="AI TRED AGENT-managed sources will appear here."
         />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">

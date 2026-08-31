@@ -5,17 +5,17 @@ import { PublicNav, PublicFooter } from "@/components/PublicNav";
 export const Route = createFileRoute("/privacy")({
   head: () => ({
     meta: [
-      { title: "Privacy Policy — Hermes" },
+      { title: "Privacy Policy — AI TRED AGENT" },
       {
         name: "description",
         content:
-          "How Hermes collects, uses, and protects your data — including API key encryption, GDPR rights, CCPA rights, and data retention practices.",
+          "How AI TRED AGENT collects, uses, and protects your data — including API key encryption, GDPR rights, CCPA rights, and data retention practices.",
       },
-      { property: "og:title", content: "Privacy Policy — Hermes" },
+      { property: "og:title", content: "Privacy Policy — AI TRED AGENT" },
       {
         property: "og:description",
         content:
-          "How Hermes collects, uses, and protects your data — including API key encryption, GDPR rights, and CCPA rights.",
+          "How AI TRED AGENT collects, uses, and protects your data — including API key encryption, GDPR rights, and CCPA rights.",
       },
     ],
   }),
@@ -39,7 +39,7 @@ const sections = [
     icon: Lock,
     title: "How We Use Your Information",
     content: [
-      "To operate the Hermes platform — process signals, execute trades, display your portfolio, and generate reports.",
+      "To operate the AI TRED AGENT platform — process signals, execute trades, display your portfolio, and generate reports.",
       "To communicate with you — account notifications, billing receipts, service updates, and support responses.",
       "To improve our service — analyze usage patterns, fix bugs, and develop new features.",
       "To prevent abuse — detect unauthorized access, fraudulent activity, and violations of our Terms of Service.",
@@ -88,7 +88,7 @@ const sections = [
       "Right to erasure ('right to be forgotten'): request deletion of your personal data. We will comply within 30 days.",
       "Right to data portability: request a machine-readable export of your data.",
       "Right to object: object to processing of your personal data for certain purposes, including direct marketing.",
-      "To exercise any of these rights, email privacy@hermesagent.com from your registered email address.",
+      "To exercise any of these rights, email privacy@aitredagent.com from your registered email address.",
     ],
   },
   {
@@ -100,7 +100,7 @@ const sections = [
       "Right to delete: request deletion of your personal information, subject to certain exceptions.",
       "Right to opt-out of sale: we do not sell personal information. There is no sale to opt out of.",
       "Right to non-discrimination: we will not discriminate against you for exercising any of your CCPA rights.",
-      "To make a request, email privacy@hermesagent.com. We will verify your identity and respond within 45 days.",
+      "To make a request, email privacy@aitredagent.com. We will verify your identity and respond within 45 days.",
     ],
   },
   {
@@ -120,7 +120,7 @@ const sections = [
       "All data transmitted between your browser and our servers is encrypted in transit using TLS 1.3.",
       "All data at rest is encrypted using AES-256 standards.",
       "Access to production systems is restricted to a small set of authorized personnel with multi-factor authentication.",
-      "We conduct regular security audits and penetration testing. Bug bounty reports are welcome at security@hermesagent.com.",
+      "We conduct regular security audits and penetration testing. Bug bounty reports are welcome at security@aitredagent.com.",
       "We maintain SOC 2-type controls and perform annual third-party security assessments.",
     ],
   },
@@ -128,10 +128,10 @@ const sections = [
     icon: Mail,
     title: "Contact",
     content: [
-      "Data Protection Officer: privacy@hermesagent.com",
-      "Security: security@hermesagent.com",
-      "Support: support@hermesagent.com",
-      "Postal address: Hermes Agent Workstation, Attn: Privacy, 100 Crypto Street, Suite 200, San Francisco, CA 94105, USA",
+      "Data Protection Officer: privacy@aitredagent.com",
+      "Security: security@aitredagent.com",
+      "Support: support@aitredagent.com",
+      "Postal address: AI TRED AGENT, Attn: Privacy, 100 Crypto Street, Suite 200, San Francisco, CA 94105, USA",
       "We will acknowledge your privacy request within 5 business days and respond substantively within 30 days.",
     ],
   },

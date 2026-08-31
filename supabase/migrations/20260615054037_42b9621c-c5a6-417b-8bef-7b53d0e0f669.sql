@@ -216,9 +216,9 @@ CREATE POLICY "src_read_all_auth" ON public.signal_sources FOR SELECT TO authent
 CREATE POLICY "src_admin_all" ON public.signal_sources FOR ALL TO authenticated USING (public.has_role(auth.uid(),'admin')) WITH CHECK (public.has_role(auth.uid(),'admin'));
 
 INSERT INTO public.signal_sources (code,name,description,plan_minimum,win_rate) VALUES
- ('hermes-core','Hermes Core','Flagship platform signals','starter',72.5),
- ('hermes-scalp','Hermes Scalp','High-frequency scalp signals','premium',68.1),
- ('hermes-swing','Hermes Swing','Swing trade signals','starter',74.0);
+  ('hermes-core','AI TRED AGENT Core','Flagship platform signals','starter',72.5),
+  ('hermes-scalp','AI TRED AGENT Scalp','High-frequency scalp signals','premium',68.1),
+  ('hermes-swing','AI TRED AGENT Swing','Swing trade signals','starter',74.0);
 
 -- Signals (parsed)
 CREATE TABLE public.signals (

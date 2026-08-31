@@ -1,4 +1,4 @@
-// Pure TypeScript port of the Hermes signal parser.
+// Pure TypeScript port of the AI TRED AGENT signal parser.
 // Worker-safe: no Node-only APIs, no I/O.
 //
 // Input: raw text from a Telegram/Discord message.

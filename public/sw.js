@@ -1,5 +1,5 @@
-// Hermes Service Worker v1
-const CACHE = "hermes-v1";
+// AI TRED AGENT Service Worker v1
+const CACHE = "aitredagent-v1";
 const PRECACHE = ["/", "/app", "/pricing", "/faq", "/affiliate", "/manifest.webmanifest"];
 const API_PATTERN = /\/(api|hooks)\//;
 
