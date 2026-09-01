@@ -496,6 +496,7 @@ export type Database = {
           id: string;
           invoice_number: string;
           issued_at: string | null;
+          
           paid_at: string | null;
           status: string;
           subscription_id: string | null;
@@ -509,6 +510,7 @@ export type Database = {
           id?: string;
           invoice_number: string;
           issued_at?: string | null;
+          
           paid_at?: string | null;
           status?: string;
           subscription_id?: string | null;
@@ -522,6 +524,7 @@ export type Database = {
           id?: string;
           invoice_number?: string;
           issued_at?: string | null;
+          
           paid_at?: string | null;
           status?: string;
           subscription_id?: string | null;

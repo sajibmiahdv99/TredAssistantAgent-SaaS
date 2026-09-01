@@ -1,11 +1,12 @@
-// Crypto (USDT TRC-20 via Trust Wallet) billing — server functions.
-// No Stripe/gateway: the customer pays USDT to the operator's Trust Wallet
-// address, submits the TRC-20 transaction hash, and we verify it on-chain via
-// TronGrid before activating the subscription.
+// Crypto (USDT via Trust Wallet) billing — server functions.
+// No Stripe/gateway: the customer pays USDT to the operator's wallet, submits
+// the transaction hash, and we verify it on-chain (TronGrid TRC-20 / BSC RPC
+// BEP-20) before activating the subscription.
 //
 // Required env:
-//   USDT_TRON_ADDRESS    — operator Trust Wallet (TRC-20) USDT receive address (T...)
-//   TRONGRID_API_KEY     — free TronGrid API key (optional but recommended)
+//   USDT_TRON_ADDRESS    — operator Trust Wallet USDT (TRC-20) receive address (T...)
+//   TRONGRID_API_KEY     — free TronGrid API key (TRC-20 verification)
+//   BSC_USDT_ADDRESS     — operator USDT (BEP-20) receive address (0x...)
 //   VITE_APP_URL         — for invoice callback URLs (optional)
 
 import { createServerFn } from "@tanstack/react-start";
@@ -13,17 +14,62 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 // TRC-20 USDT contract on Tron (decimals = 6).
-const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-const USDT_DECIMALS = 6;
-const NETWORK = "TRC-20";
-const PROVIDER = "trustwallet-usdt-trc20";
+const USDT_TRON_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+const USDT_TRON_DECIMALS = 6;
+// BEP-20 USDT contract on BSC / BNB Smart Chain (decimals = 18).
+const USDT_BSC_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
+const USDT_BSC_DECIMALS = 18;
+// keccak256("Transfer(address,address,uint256)")
+const TRANSFER_SIG = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+const BSC_RPC_URLS = ["https://bsc-dataseed.binance.org", "https://bsc-rpc.publicnode.com"];
 
-function usdtAddress(): string {
-  return process.env.USDT_TRON_ADDRESS ?? "";
+interface NetConfig {
+  id: string;
+  label: string;
+  network: string;
+  address: string;
+  contract: string;
+  decimals: number;
+  enabled: boolean;
 }
 
+function tronAddress(): string {
+  return process.env.USDT_TRON_ADDRESS ?? "";
+}
+function bscAddress(): string {
+  return process.env.BSC_USDT_ADDRESS ?? "";
+}
 function apiKey(): string {
   return process.env.TRONGRID_API_KEY ?? "";
+}
+
+function networks(): NetConfig[] {
+  return [
+    {
+      id: "tron",
+      label: "USDT (TRC-20)",
+      network: "TRC-20",
+      address: tronAddress(),
+      contract: USDT_TRON_CONTRACT,
+      decimals: USDT_TRON_DECIMALS,
+      enabled: !!tronAddress(),
+    },
+    {
+      id: "bsc",
+      label: "USDT (BEP-20)",
+      network: "BSC",
+      address: bscAddress(),
+      contract: USDT_BSC_CONTRACT,
+      decimals: USDT_BSC_DECIMALS,
+      enabled: !!bscAddress(),
+    },
+  ];
+}
+
+function getNet(id: string): NetConfig {
+  const n = networks().find((x) => x.id === id && x.enabled) ?? networks().find((x) => x.id === id);
+  if (!n || !n.enabled) throw new Error("Selected payment network is not configured.");
+  return n;
 }
 
 // ─── Public payment info ─────────────────────────────────────────────────────
@@ -31,9 +77,9 @@ function apiKey(): string {
 export const getCryptoPayInfo = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const address = usdtAddress();
-    if (!address) {
-      return { enabled: false as const, network: NETWORK };
+    const enabledNetworks = networks().filter((n) => n.enabled);
+    if (enabledNetworks.length === 0) {
+      return { enabled: false as const, networks: [] };
     }
 
     // Current/active subscription + latest pending invoice for this user.
@@ -55,12 +101,14 @@ export const getCryptoPayInfo = createServerFn({ method: "GET" })
         .maybeSingle(),
     ]);
 
+    const primary = enabledNetworks[0];
     return {
       enabled: true as const,
-      network: NETWORK,
-      address,
-      contract: USDT_CONTRACT,
-      decimals: USDT_DECIMALS,
+      networks: enabledNetworks,
+      network: primary.network,
+      address: primary.address,
+      contract: primary.contract,
+      decimals: primary.decimals,
       subscription: subRes.data,
       pendingInvoice: invRes.data,
     };
@@ -75,12 +123,12 @@ export const startCryptoPayment = createServerFn({ method: "POST" })
       .object({
         planCode: z.string().min(1).max(32),
         billingInterval: z.enum(["monthly", "yearly"]).default("monthly"),
+        network: z.enum(["tron", "bsc"]).default("tron"),
       })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const address = usdtAddress();
-    if (!address) throw new Error("USDT_TRON_ADDRESS is not configured.");
+    const net = getNet(data.network);
 
     // Writes go through the service-role client (bypasses RLS) so users can't
     // insert/activate billing rows of their own via REST. Loaded lazily inside
@@ -131,7 +179,7 @@ export const startCryptoPayment = createServerFn({ method: "POST" })
       subscriptionId = sub.id as string;
     } else if (existing?.status === "active") {
       // Already active — don't create a duplicate pending flow.
-      return { alreadyActive: true as const, invoiceNumber: null, amount: 0, network: NETWORK, address };
+      return { alreadyActive: true as const, invoiceNumber: null, amount: 0, network: net.network, address: net.address };
     } else {
       // Refresh plan/billing on the existing pending subscription.
       const end = new Date();
@@ -175,9 +223,11 @@ export const startCryptoPayment = createServerFn({ method: "POST" })
       invoiceId: invoice.id as string,
       amount,
       currency: "USD",
-      network: NETWORK,
-      contract: USDT_CONTRACT,
-      address,
+      networkId: net.id,
+      network: net.network,
+      contract: net.contract,
+      address: net.address,
+      decimals: net.decimals,
     };
   });
 
@@ -190,13 +240,11 @@ export const verifyCryptoPayment = createServerFn({ method: "POST" })
       .object({
         invoiceNumber: z.string().min(1).max(64),
         txHash: z.string().min(10).max(128),
+        network: z.enum(["tron", "bsc"]).default("tron"),
       })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const address = usdtAddress();
-    if (!address) throw new Error("USDT_TRON_ADDRESS is not configured.");
-
     // Activation writes go through the service-role client (bypasses RLS) so a
     // user can't flip their own subscription to active via REST without paying.
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
@@ -213,7 +261,10 @@ export const verifyCryptoPayment = createServerFn({ method: "POST" })
     if (invoice.status === "paid") return { paid: true as const, alreadyPaid: true as const };
     if (!invoice.subscription_id) throw new Error("Invoice has no attached subscription.");
 
-    const confirmed = await confirmOnchainUsdt(address, data.txHash, invoice.amount);
+    const net = getNet(data.network);
+    const confirmed = net.network.toUpperCase().includes("BSC")
+      ? await confirmOnchainUsdtBsc(net.address, data.txHash, invoice.amount)
+      : await confirmOnchainUsdt(net.address, data.txHash, invoice.amount);
 
     if (!confirmed.ok) {
       return { paid: false as const, reason: confirmed.reason };
@@ -241,13 +292,13 @@ export const verifyCryptoPayment = createServerFn({ method: "POST" })
     return { paid: true as const, alreadyPaid: false as const };
   });
 
-// ─── On-chain verification via TronGrid ──────────────────────────────────────
+// ─── On-chain verification — TRC-20 (TronGrid) ───────────────────────────────
 
 interface Trc20Transfer {
   transaction_id: string;
   from: string;
   to: string;
-  value: string; // raw value (USDT decimals = 6)
+  value: string;
   block_timestamp: number;
   token_info?: { address?: string; symbol?: string; decimals?: number };
 }
@@ -260,7 +311,7 @@ async function confirmOnchainUsdt(
   const tx = txHash.trim().toLowerCase();
   const query = new URLSearchParams({
     limit: "100",
-    contract_address: USDT_CONTRACT,
+    contract_address: USDT_TRON_CONTRACT,
     only_confirmed: "true",
   });
   const url = `https://api.trongrid.io/v1/accounts/${encodeURIComponent(toAddress)}/transactions/trc20?${query}`;
@@ -294,11 +345,60 @@ async function confirmOnchainUsdt(
     };
   }
 
-  const decimals = match.token_info?.decimals ?? USDT_DECIMALS;
+  const decimals = match.token_info?.decimals ?? USDT_TRON_DECIMALS;
   const amount = Number(match.value) / 10 ** decimals;
   if (amount < requiredAmount) {
     return { ok: false, reason: `Amount received (${amount.toFixed(2)} USDT) is less than required (${requiredAmount.toFixed(2)}).` };
   }
 
   return { ok: true };
+}
+
+// ─── On-chain verification — BEP-20 (BSC RPC) ────────────────────────────────
+
+async function confirmOnchainUsdtBsc(
+  toAddress: string,
+  txHash: string,
+  requiredAmount: number,
+): Promise<{ ok: boolean; reason?: string }> {
+  const tx = txHash.trim();
+
+  for (const rpc of BSC_RPC_URLS) {
+    try {
+      const res = await fetch(rpc, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getTransactionReceipt", params: [tx] }),
+        signal: AbortSignal.timeout(15000),
+      });
+      const json = (await res.json()) as {
+        result?: { status?: string; logs?: Array<{ address: string; topics: string[]; data: string }> };
+      };
+      const receipt = json.result;
+      if (!receipt || receipt.status !== "0x1") continue;
+
+      const transfer = (receipt.logs ?? []).find(
+        (l) =>
+          l.address.toLowerCase() === USDT_BSC_CONTRACT.toLowerCase() &&
+          l.topics[0]?.toLowerCase() === TRANSFER_SIG,
+      );
+      if (!transfer) return { ok: false, reason: "No USDT (BEP-20) Transfer event found in this transaction." };
+
+      const to = "0x" + transfer.topics[2].slice(26);
+      const value = BigInt(`0x${transfer.data.slice(0, 66) || "0"}`);
+      const amount = Number(value) / 10 ** USDT_BSC_DECIMALS;
+
+      if (to.toLowerCase() !== toAddress.toLowerCase()) {
+        return { ok: false, reason: "That transfer's recipient is not the operator wallet." };
+      }
+      if (amount < requiredAmount) {
+        return { ok: false, reason: `Amount received (${amount.toFixed(2)} USDT) is less than required (${requiredAmount.toFixed(2)}).` };
+      }
+      return { ok: true };
+    } catch {
+      // try next RPC
+    }
+  }
+
+  return { ok: false, reason: "Could not confirm the transaction on BSC." };
 }
