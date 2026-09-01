@@ -14,7 +14,18 @@ const USDT_TRON_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 const USDT_BSC_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
 const USDT_BSC_DECIMALS = 18;
 const TRANSFER_SIG = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
-const BSC_RPC_URLS = ["https://bsc-dataseed.binance.org", "https://bsc-rpc.publicnode.com"];
+// Prefer RPCs proven to serve eth_getLogs; datased.binance.org is rate-limited for
+// log queries, so it's a fallback only.
+const BSC_RPC_URLS = ["https://bsc-rpc.publicnode.com", "https://bsc-dataseed.binance.org", "https://bsc-dataseed1.defibit.io"];
+// Absorb exchange network fees: the customer sends exactly the amount shown, but
+// the exchange deducts a small network fee, so the operator wallet nets minAmount - fee.
+// Accept any on-chain amount within this window of the invoice amount.
+const NETWORK_FEE_ABSORB = 0.5;
+// Worker re-scans every ~60s and a BEP-20 deposit lands within minutes, so a ~8000
+// block window (~6.7h) is enough for fresh payments AND catches a payment that was
+// pending a while (publicnode serves up to ~10000 blocks before its archive limit;
+// a huge window gets "limit exceeded" / "archive requires a personal token").
+const BSC_SCAN_BLOCKS = 8000;
 
 function log(scope: string, msg: string): void {
   console.log(`[crypto-confirm:${scope}] ${new Date().toISOString()} ${msg}`);
@@ -44,7 +55,7 @@ async function findBscTransfer(
           method: "eth_getLogs",
           params: [{
             address: USDT_BSC_CONTRACT,
-            fromBlock: "0x" + (BigInt(await latestBscBlock(rpc)) - 20000n).toString(16),
+            fromBlock: "0x" + (BigInt(await latestBscBlock(rpc)) - BigInt(BSC_SCAN_BLOCKS)).toString(16),
             toBlock: "latest",
             topics: [TRANSFER_SIG, null, padded],
           }],
@@ -53,14 +64,19 @@ async function findBscTransfer(
       });
       const json = (await res.json()) as {
         result?: Array<{ topics: string[]; data: string; transactionHash: string }>;
+        error?: { message?: string };
       };
+      // A JSON-RPC error (e.g. "limit exceeded") has no result — treat it as a
+      // failed RPC so we fall through to the next endpoint instead of silently
+      // reporting "no transfers found".
+      if (json.error) throw new Error(`bsc rpc: ${json.error.message ?? "unknown error"}`);
       const logs = json.result ?? [];
       // newest first
       for (const l of logs.slice().reverse()) {
         const to = "0x" + l.topics[2].slice(26);
-        const value = BigInt(`0x${l.data.slice(0, 66) || "0"}`);
+        const value = BigInt(`0x${l.data.slice(2, 66) || "0"}`);
         const amount = Number(value) / 10 ** USDT_BSC_DECIMALS;
-        if (to.toLowerCase() === operatorTag && Math.abs(amount - minAmount) < 0.005 && !usedTx.has(l.transactionHash)) {
+        if (to.toLowerCase() === operatorTag && amount >= minAmount - NETWORK_FEE_ABSORB && amount <= minAmount + NETWORK_FEE_ABSORB && !usedTx.has(l.transactionHash)) {
           return l.transactionHash;
         }
       }
@@ -79,8 +95,10 @@ async function latestBscBlock(rpc: string): Promise<bigint> {
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_blockNumber", params: [] }),
     signal: AbortSignal.timeout(15000),
   });
-  const json = (await res.json()) as { result?: string };
-  return BigInt(json.result ?? "0x0");
+  const json = (await res.json()) as { result?: string; error?: { message?: string } };
+  if (json.error) throw new Error(`bsc blockNumber: ${json.error.message ?? "unknown error"}`);
+  if (!json.result) throw new Error("bsc blockNumber: no result");
+  return BigInt(json.result);
 }
 
 // ─── TRC-20 scan (TronGrid) ───────────────────────────────────────────────────
@@ -110,7 +128,7 @@ async function findTronTransfer(
       const to = (t.to ?? "").toLowerCase();
       const decimals = t.token_info?.decimals ?? 6;
       const amount = Number(t.value) / 10 ** decimals;
-      if (to === operator.toLowerCase() && Math.abs(amount - minAmount) < 0.005 && !usedTx.has(t.transaction_id)) {
+      if (to === operator.toLowerCase() && amount >= minAmount - NETWORK_FEE_ABSORB && amount <= minAmount + NETWORK_FEE_ABSORB && !usedTx.has(t.transaction_id)) {
         return t.transaction_id;
       }
     }
