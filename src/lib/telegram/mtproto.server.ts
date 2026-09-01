@@ -384,7 +384,9 @@ export async function sendMessageTelegram(
   const client = await makeClient(sessionString);
   try {
     const entity = await client.getEntity(chatId);
-    await client.sendMessage(entity, { message: text, parseMode: "HTML" });
+    // gramjs sanitizeParseMode accepts lowercase "html" (or md/markdown); "HTML" throws
+    // "Invalid parse mode type HTML". Use the lowercase form the parser expects.
+    await client.sendMessage(entity, { message: text, parseMode: "html" });
   } finally {
     await client.disconnect().catch(() => {});
   }
