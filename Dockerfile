@@ -22,6 +22,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/worker ./worker
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/serve.mjs ./serve.mjs
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/.env.example ./.env
 
 EXPOSE 3000
