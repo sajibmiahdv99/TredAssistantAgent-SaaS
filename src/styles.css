@@ -31,44 +31,73 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+  --color-running: var(--running);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-border: var(--sidebar-border);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 }
 
+/*
+  AI TRED AGENT — dark-first ops console (Agent Hub)
+  Linear-derived token set. Near-black canvas, hairline borders,
+  single restrained accent (#5e6ad2), low font-weight band.
+  Elevation is "luminance stacking": lighter surface = higher. No dark shadows.
+*/
 :root {
-  --radius: 0.75rem;
-  /* Dark by default — AI TRED AGENT is a trading workstation */
-  --background: oklch(0.16 0.02 250);
-  --foreground: oklch(0.96 0.005 250);
-  --card: oklch(0.2 0.02 250);
-  --card-foreground: oklch(0.96 0.005 250);
-  --popover: oklch(0.2 0.02 250);
-  --popover-foreground: oklch(0.96 0.005 250);
-  --primary: oklch(0.72 0.18 155); /* emerald */
-  --primary-foreground: oklch(0.15 0.02 250);
-  --secondary: oklch(0.27 0.02 250);
-  --secondary-foreground: oklch(0.96 0.005 250);
-  --muted: oklch(0.24 0.02 250);
-  --muted-foreground: oklch(0.66 0.02 250);
-  --accent: oklch(0.27 0.02 250);
-  --accent-foreground: oklch(0.96 0.005 250);
-  --destructive: oklch(0.62 0.22 25);
-  --destructive-foreground: oklch(0.98 0.01 250);
-  --success: oklch(0.72 0.18 155);
-  --warning: oklch(0.78 0.16 75);
-  --danger: oklch(0.65 0.22 22);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.72 0.18 155);
-  --sidebar: oklch(0.2 0.02 250);
-  --sidebar-foreground: oklch(0.96 0.005 250);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --chart-1: oklch(0.72 0.18 155);
-  --chart-2: oklch(0.65 0.2 250);
-  --chart-3: oklch(0.78 0.16 75);
-  --chart-4: oklch(0.65 0.22 22);
-  --chart-5: oklch(0.7 0.16 305);
+  --radius: 0.5rem; /* 6px buttons/inputs; cards/drawers scale up via sm/md/lg */
+
+  /* Typography */
+  --font-sans:
+    "Inter", "Inter var", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, sans-serif;
+  --font-mono:
+    "JetBrains Mono", "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas,
+    monospace;
+
+  /* Surfaces — luminance stacking (near-black, not pure black) */
+  --background: #08090a; /* canvas */
+  --foreground: #f7f8f8; /* text-primary */
+  --card: #0f1011; /* surface-1 */
+  --card-foreground: #f7f8f8;
+  --popover: #18191a; /* surface-3: popovers, drawers */
+  --popover-foreground: #f7f8f8;
+  --secondary: #141516; /* surface-2: hovered / raised */
+  --secondary-foreground: #e6e8eb;
+  --muted: #141516;
+  --muted-foreground: #8a8f98; /* 5.4:1 — AA for informational text */
+  --accent: #141516; /* hover surface */
+  --accent-foreground: #f7f8f8;
+
+  /* Single restrained accent — focus rings + one primary CTA per view */
+  --primary: #5e6ad2; /* lavender-blue */
+  --primary-foreground: #ffffff;
+
+  --destructive: #f85149;
+  --destructive-foreground: #ffffff;
+
+  /* Status tokens (colorblind-safe: icon+label+color, never color alone) */
+  --success: #3fb950;
+  --warning: #d29922;
+  --danger: #f85149;
+  --running: #58a6ff;
+
+  /* Hairlines */
+  --border: #23252a; /* border-subtle */
+  --input: #3e3e44; /* border-strong */
+  --ring: #5e6ad2; /* focus ring */
+
+  /* Sidebar = surface-1 */
+  --sidebar: #0f1011;
+  --sidebar-foreground: #f7f8f8;
+  --sidebar-border: #23252a;
+
+  --chart-1: #58a6ff;
+  --chart-2: #3fb950;
+  --chart-3: #d29922;
+  --chart-4: #f85149;
+  --chart-5: #5e6ad2;
 }
 
 .dark {
@@ -83,15 +112,27 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-feature-settings:
+      "ss01" on,
+      "cv01" on,
+      "cv11" on,
+      "cv21" on;
   }
   body {
-    font-family:
-      ui-sans-serif,
-      system-ui,
-      -apple-system,
-      "Segoe UI",
-      Roboto,
-      "Inter var",
-      sans-serif;
+    font-family: var(--font-sans);
+    letter-spacing: -0.005em;
+  }
+  ::selection {
+    background-color: color-mix(in oklab, var(--primary) 30%, transparent);
+  }
+}
+
+/* Density helpers */
+@layer utilities {
+  .hairline {
+    border-color: var(--color-border);
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }
