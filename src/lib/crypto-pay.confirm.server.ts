@@ -21,6 +21,9 @@ const BSC_RPC_URLS = ["https://bsc-rpc.publicnode.com", "https://bsc-dataseed.bi
 // the exchange deducts a small network fee, so the operator wallet nets minAmount - fee.
 // Accept any on-chain amount within this window of the invoice amount.
 const NETWORK_FEE_ABSORB = 0.5;
+// Used transfer hashes (module-level, persists across 60s loop runs so one on-chain
+// transfer confirms at most one invoice).
+const usedTx = new Set<string>();
 // Worker re-scans every ~60s and a BEP-20 deposit lands within minutes, so a ~8000
 // block window (~6.7h) is enough for fresh payments AND catches a payment that was
 // pending a while (publicnode serves up to ~10000 blocks before its archive limit;
@@ -166,7 +169,9 @@ export async function confirmPendingCryptoPayments(): Promise<{ checked: number;
   }>;
   if (!pending.length) return { checked: 0, confirmed: 0 };
 
-  const usedTx = new Set<string>();
+  // A single on-chain transfer must confirm AT MOST ONE invoice. Module-level so
+  // it persists across the 60s loop runs — otherwise the same tx confirms a second
+  // pending invoice on the next tick.
   let confirmed = 0;
 
   for (const inv of pending) {
