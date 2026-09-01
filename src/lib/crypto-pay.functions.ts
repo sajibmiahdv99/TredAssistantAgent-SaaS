@@ -82,7 +82,12 @@ export const startCryptoPayment = createServerFn({ method: "POST" })
     const address = usdtAddress();
     if (!address) throw new Error("USDT_TRON_ADDRESS is not configured.");
 
-    const { data: plan, error: planErr } = await context.supabase
+    // Writes go through the service-role client (bypasses RLS) so users can't
+    // insert/activate billing rows of their own via REST. Loaded lazily inside
+    // the handler — top-level import would ship the service key to the client.
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+
+    const { data: plan, error: planErr } = await admin
       .from("plans")
       .select("code,name,monthly_price,yearly_price")
       .eq("code", data.planCode)
@@ -96,7 +101,7 @@ export const startCryptoPayment = createServerFn({ method: "POST" })
     if (!amount || amount <= 0) throw new Error("Invalid plan price.");
 
     // Find or create a pending subscription for the user.
-    const { data: existing } = await context.supabase
+    const { data: existing } = await admin
       .from("subscriptions")
       .select("id,status")
       .eq("user_id", context.userId)
@@ -109,7 +114,7 @@ export const startCryptoPayment = createServerFn({ method: "POST" })
       const now = new Date();
       const end = new Date(now);
       end.setMonth(end.getMonth() + (data.billingInterval === "yearly" ? 12 : 1));
-      const { data: sub, error: subErr } = await context.supabase
+      const { data: sub, error: subErr } = await admin
         .from("subscriptions")
         .insert({
           user_id: context.userId,
@@ -131,7 +136,7 @@ export const startCryptoPayment = createServerFn({ method: "POST" })
       // Refresh plan/billing on the existing pending subscription.
       const end = new Date();
       end.setMonth(end.getMonth() + (data.billingInterval === "yearly" ? 12 : 1));
-      await context.supabase
+      await admin
         .from("subscriptions")
         .update({
           plan_code: data.planCode,
@@ -147,7 +152,7 @@ export const startCryptoPayment = createServerFn({ method: "POST" })
       .slice(2, 6)
       .toUpperCase()}`;
 
-    const { data: invoice, error: invErr } = await context.supabase
+    const { data: invoice, error: invErr } = await admin
       .from("invoices")
       .insert({
         user_id: context.userId,
@@ -192,8 +197,12 @@ export const verifyCryptoPayment = createServerFn({ method: "POST" })
     const address = usdtAddress();
     if (!address) throw new Error("USDT_TRON_ADDRESS is not configured.");
 
+    // Activation writes go through the service-role client (bypasses RLS) so a
+    // user can't flip their own subscription to active via REST without paying.
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+
     // The invoice must belong to the caller.
-    const { data: invoice, error: invErr } = await context.supabase
+    const { data: invoice, error: invErr } = await admin
       .from("invoices")
       .select("id,amount,status,subscription_id,user_id")
       .eq("invoice_number", data.invoiceNumber)
@@ -215,12 +224,12 @@ export const verifyCryptoPayment = createServerFn({ method: "POST" })
     const end = new Date(now);
     end.setMonth(end.getMonth() + 1);
 
-    await context.supabase
+    await admin
       .from("invoices")
       .update({ status: "paid", paid_at: now.toISOString() })
       .eq("id", invoice.id);
 
-    await context.supabase
+    await admin
       .from("subscriptions")
       .update({
         status: "active",
