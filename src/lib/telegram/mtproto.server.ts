@@ -372,3 +372,20 @@ export async function fetchChannelMessages(
     await client.disconnect().catch(() => {});
   }
 }
+
+// Bot-less notification delivery — send a message to a chat using the
+// USER'S OWN MTProto session (no bot, no bot token). Works because the
+// linked Telegram account is a member of the target chat.
+export async function sendMessageTelegram(
+  sessionString: string,
+  chatId: string,
+  text: string,
+): Promise<void> {
+  const client = await makeClient(sessionString);
+  try {
+    const entity = await client.getEntity(chatId);
+    await client.sendMessage(entity, { message: text, parseMode: "HTML" });
+  } finally {
+    await client.disconnect().catch(() => {});
+  }
+}

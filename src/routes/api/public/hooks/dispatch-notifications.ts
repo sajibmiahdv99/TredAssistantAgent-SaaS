@@ -1,6 +1,8 @@
 // Cron hook: dispatches pending in-app notifications to Email + Telegram channels
 // based on user_notification_prefs. Auth: requires CRON_SECRET in `x-cron-secret`.
 import { createFileRoute } from "@tanstack/react-router";
+import { decryptSession } from "@/lib/crypto.server";
+import { sendMessageTelegram } from "@/lib/telegram/mtproto.server";
 
 function safeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -61,20 +63,6 @@ function isEventAllowed(p: PrefsRow, evt: string): boolean {
   }
 }
 
-async function sendTelegram(token: string, chatId: string, text: string): Promise<void> {
-  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text,
-      parse_mode: "HTML",
-      disable_web_page_preview: true,
-    }),
-  });
-  if (!res.ok) throw new Error(`telegram ${res.status}: ${await res.text()}`);
-}
-
 async function sendEmailViaResend(
   apiKey: string,
   fromAddr: string,
@@ -120,7 +108,6 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-notifications")
         }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const tgToken = process.env.TELEGRAM_BOT_TOKEN || "";
         const resendKey = process.env.RESEND_API_KEY || "";
         const emailFrom = process.env.EMAIL_FROM || "Notifications <onboarding@resend.dev>";
 
@@ -209,14 +196,28 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-notifications")
             ) {
               patch.telegram_dispatched_at = new Date().toISOString();
               skipped++;
-            } else if (!tgToken) {
-              errors.push("TELEGRAM_BOT_TOKEN missing");
             } else {
               try {
-                const text = `<b>${escapeHtml(n.title)}</b>\n${escapeHtml(n.body || "")}`;
-                await sendTelegram(tgToken, p.telegram_chat_id, text);
-                patch.telegram_dispatched_at = new Date().toISOString();
-                tgSent++;
+                const { data: acc } = await supabaseAdmin
+                  .from("telegram_accounts")
+                  .select("session_ref")
+                  .eq("user_id", p.user_id)
+                  .eq("status", "active")
+                  .order("created_at", { ascending: true })
+                  .limit(1)
+                  .maybeSingle();
+                if (!acc?.session_ref) {
+                  errors.push("telegram: no linked Telegram session");
+                } else {
+                  const text = `<b>${escapeHtml(n.title)}</b>\n${escapeHtml(n.body || "")}`;
+                  await sendMessageTelegram(
+                    decryptSession(acc.session_ref),
+                    p.telegram_chat_id,
+                    text,
+                  );
+                  patch.telegram_dispatched_at = new Date().toISOString();
+                  tgSent++;
+                }
               } catch (e) {
                 errors.push(`telegram: ${(e as Error).message}`);
               }

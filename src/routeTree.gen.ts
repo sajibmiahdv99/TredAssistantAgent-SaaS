@@ -55,8 +55,8 @@ import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicPaymentWebhookRouteImport } from './routes/api/public/payment-webhook'
 import { Route as ApiPublicSignupHookRouteImport } from './routes/api/public/signup-hook'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
-import { Route as ApiPublicTelegramLoginRouteImport } from './routes/api/public/telegram-login'
-import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram-webhook'
+import { Route as ApiPublicTelegramPhoneStartRouteImport } from './routes/api/public/telegram-phone-start'
+import { Route as ApiPublicTelegramPhoneVerifyRouteImport } from './routes/api/public/telegram-phone-verify'
 import { Route as ApiPublicHooksDispatchNotificationsRouteImport } from './routes/api/public/hooks/dispatch-notifications'
 import { Route as ApiPublicHooksMonitorAnomaliesRouteImport } from './routes/api/public/hooks/monitor-anomalies'
 import { Route as ApiPublicHooksMonitorPositionsRouteImport } from './routes/api/public/hooks/monitor-positions'
@@ -318,15 +318,16 @@ const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   path: '/api/public/stripe-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicTelegramLoginRoute = ApiPublicTelegramLoginRouteImport.update({
-  id: '/api/public/telegram-login',
-  path: '/api/public/telegram-login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicTelegramWebhookRoute =
-  ApiPublicTelegramWebhookRouteImport.update({
-    id: '/api/public/telegram-webhook',
-    path: '/api/public/telegram-webhook',
+const ApiPublicTelegramPhoneStartRoute =
+  ApiPublicTelegramPhoneStartRouteImport.update({
+    id: '/api/public/telegram-phone-start',
+    path: '/api/public/telegram-phone-start',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicTelegramPhoneVerifyRoute =
+  ApiPublicTelegramPhoneVerifyRouteImport.update({
+    id: '/api/public/telegram-phone-verify',
+    path: '/api/public/telegram-phone-verify',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksDispatchNotificationsRoute =
@@ -427,8 +428,8 @@ export interface FileRoutesByFullPath {
   '/api/public/payment-webhook': typeof ApiPublicPaymentWebhookRoute
   '/api/public/signup-hook': typeof ApiPublicSignupHookRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
-  '/api/public/telegram-login': typeof ApiPublicTelegramLoginRoute
-  '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
+  '/api/public/telegram-phone-start': typeof ApiPublicTelegramPhoneStartRoute
+  '/api/public/telegram-phone-verify': typeof ApiPublicTelegramPhoneVerifyRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/api/public/hooks/dispatch-notifications': typeof ApiPublicHooksDispatchNotificationsRoute
@@ -483,8 +484,8 @@ export interface FileRoutesByTo {
   '/api/public/payment-webhook': typeof ApiPublicPaymentWebhookRoute
   '/api/public/signup-hook': typeof ApiPublicSignupHookRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
-  '/api/public/telegram-login': typeof ApiPublicTelegramLoginRoute
-  '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
+  '/api/public/telegram-phone-start': typeof ApiPublicTelegramPhoneStartRoute
+  '/api/public/telegram-phone-verify': typeof ApiPublicTelegramPhoneVerifyRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/api/public/hooks/dispatch-notifications': typeof ApiPublicHooksDispatchNotificationsRoute
@@ -543,8 +544,8 @@ export interface FileRoutesById {
   '/api/public/payment-webhook': typeof ApiPublicPaymentWebhookRoute
   '/api/public/signup-hook': typeof ApiPublicSignupHookRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
-  '/api/public/telegram-login': typeof ApiPublicTelegramLoginRoute
-  '/api/public/telegram-webhook': typeof ApiPublicTelegramWebhookRoute
+  '/api/public/telegram-phone-start': typeof ApiPublicTelegramPhoneStartRoute
+  '/api/public/telegram-phone-verify': typeof ApiPublicTelegramPhoneVerifyRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/api/public/hooks/dispatch-notifications': typeof ApiPublicHooksDispatchNotificationsRoute
@@ -603,8 +604,8 @@ export interface FileRouteTypes {
     | '/api/public/payment-webhook'
     | '/api/public/signup-hook'
     | '/api/public/stripe-webhook'
-    | '/api/public/telegram-login'
-    | '/api/public/telegram-webhook'
+    | '/api/public/telegram-phone-start'
+    | '/api/public/telegram-phone-verify'
     | '/admin/'
     | '/app/'
     | '/api/public/hooks/dispatch-notifications'
@@ -659,8 +660,8 @@ export interface FileRouteTypes {
     | '/api/public/payment-webhook'
     | '/api/public/signup-hook'
     | '/api/public/stripe-webhook'
-    | '/api/public/telegram-login'
-    | '/api/public/telegram-webhook'
+    | '/api/public/telegram-phone-start'
+    | '/api/public/telegram-phone-verify'
     | '/admin'
     | '/app'
     | '/api/public/hooks/dispatch-notifications'
@@ -718,8 +719,8 @@ export interface FileRouteTypes {
     | '/api/public/payment-webhook'
     | '/api/public/signup-hook'
     | '/api/public/stripe-webhook'
-    | '/api/public/telegram-login'
-    | '/api/public/telegram-webhook'
+    | '/api/public/telegram-phone-start'
+    | '/api/public/telegram-phone-verify'
     | '/_authenticated/admin/'
     | '/_authenticated/app/'
     | '/api/public/hooks/dispatch-notifications'
@@ -747,8 +748,8 @@ export interface RootRouteChildren {
   ApiPublicPaymentWebhookRoute: typeof ApiPublicPaymentWebhookRoute
   ApiPublicSignupHookRoute: typeof ApiPublicSignupHookRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
-  ApiPublicTelegramLoginRoute: typeof ApiPublicTelegramLoginRoute
-  ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
+  ApiPublicTelegramPhoneStartRoute: typeof ApiPublicTelegramPhoneStartRoute
+  ApiPublicTelegramPhoneVerifyRoute: typeof ApiPublicTelegramPhoneVerifyRoute
   ApiPublicHooksDispatchNotificationsRoute: typeof ApiPublicHooksDispatchNotificationsRoute
   ApiPublicHooksMonitorAnomaliesRoute: typeof ApiPublicHooksMonitorAnomaliesRoute
   ApiPublicHooksMonitorPositionsRoute: typeof ApiPublicHooksMonitorPositionsRoute
@@ -1084,18 +1085,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/telegram-login': {
-      id: '/api/public/telegram-login'
-      path: '/api/public/telegram-login'
-      fullPath: '/api/public/telegram-login'
-      preLoaderRoute: typeof ApiPublicTelegramLoginRouteImport
+    '/api/public/telegram-phone-start': {
+      id: '/api/public/telegram-phone-start'
+      path: '/api/public/telegram-phone-start'
+      fullPath: '/api/public/telegram-phone-start'
+      preLoaderRoute: typeof ApiPublicTelegramPhoneStartRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/telegram-webhook': {
-      id: '/api/public/telegram-webhook'
-      path: '/api/public/telegram-webhook'
-      fullPath: '/api/public/telegram-webhook'
-      preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
+    '/api/public/telegram-phone-verify': {
+      id: '/api/public/telegram-phone-verify'
+      path: '/api/public/telegram-phone-verify'
+      fullPath: '/api/public/telegram-phone-verify'
+      preLoaderRoute: typeof ApiPublicTelegramPhoneVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/dispatch-notifications': {
@@ -1271,8 +1272,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPaymentWebhookRoute: ApiPublicPaymentWebhookRoute,
   ApiPublicSignupHookRoute: ApiPublicSignupHookRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
-  ApiPublicTelegramLoginRoute: ApiPublicTelegramLoginRoute,
-  ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
+  ApiPublicTelegramPhoneStartRoute: ApiPublicTelegramPhoneStartRoute,
+  ApiPublicTelegramPhoneVerifyRoute: ApiPublicTelegramPhoneVerifyRoute,
   ApiPublicHooksDispatchNotificationsRoute:
     ApiPublicHooksDispatchNotificationsRoute,
   ApiPublicHooksMonitorAnomaliesRoute: ApiPublicHooksMonitorAnomaliesRoute,
