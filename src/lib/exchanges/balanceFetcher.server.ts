@@ -21,25 +21,50 @@ function sign(secret: string, payload: string): string {
   return createHmac("sha256", secret).update(payload).digest("hex");
 }
 
-// ---- Binance (spot) -------------------------------------------------------
+// ---- Binance (spot + USD-M futures) ----------------------------------------
 async function fetchBinance({ apiKey, apiSecret }: FetchInput): Promise<BalanceRow[]> {
   const ts = Date.now();
   const qs = `timestamp=${ts}&recvWindow=10000`;
   const sig = sign(apiSecret, qs);
-  const res = await fetch(`https://api.binance.com/api/v3/account?${qs}&signature=${sig}`, {
+
+  // Spot wallet (api.binance.com)
+  const spotRes = await fetch(`https://api.binance.com/api/v3/account?${qs}&signature=${sig}`, {
     headers: { "X-MBX-APIKEY": apiKey },
   });
-  if (!res.ok) throw new Error(`Binance ${res.status}: ${await res.text()}`);
-  const json = (await res.json()) as {
+  if (!spotRes.ok) throw new Error(`Binance spot ${spotRes.status}: ${await spotRes.text()}`);
+  const spotJson = (await spotRes.json()) as {
     balances: { asset: string; free: string; locked: string }[];
   };
-  return json.balances
+  const spotRows: BalanceRow[] = spotJson.balances
     .map((b) => {
       const free = Number(b.free);
       const used = Number(b.locked);
       return { asset: b.asset, free, used, total: free + used };
     })
     .filter((b) => b.total > 0);
+
+  // USD-M Futures wallet (fapi.binance.com) — merged with "-FUT" suffix so
+  // spot and futures balances of the same coin stay distinct rows on the UI.
+  let futRows: BalanceRow[] = [];
+  try {
+    const futRes = await fetch(`https://fapi.binance.com/fapi/v2/balance?${qs}&signature=${sig}`, {
+      headers: { "X-MBX-APIKEY": apiKey },
+    });
+    if (!futRes.ok) throw new Error(`Binance futures ${futRes.status}: ${await futRes.text()}`);
+    const futJson = (await futRes.json()) as { asset: string; balance: string; availableBalance: string }[];
+    futRows = futJson
+      .map((b) => {
+        const total = Number(b.balance);
+        const free = Number(b.availableBalance ?? b.balance);
+        const used = Math.max(total - free, 0);
+        return { asset: `${b.asset}-FUT`, free, used, total };
+      })
+      .filter((b) => b.total > 0);
+  } catch {
+    /* futures disabled/unreachable for this key → keep spot only */
+  }
+
+  return [...spotRows, ...futRows];
 }
 
 // ---- Bybit (unified v5) ---------------------------------------------------
@@ -283,7 +308,9 @@ export async function valuateUsd(
 ): Promise<(BalanceRow & { usd_value: number | null })[]> {
   const prices = await loadPrices();
   return rows.map((r) => {
-    const a = r.asset.toUpperCase();
+    // "-FUT" suffix (Binance futures wallet) — value using the base coin.
+    const baseAsset = r.asset.endsWith("-FUT") ? r.asset.slice(0, -4) : r.asset;
+    const a = baseAsset.toUpperCase();
     let usd: number | null = null;
     if (
       a === "USDT" ||
