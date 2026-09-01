@@ -44,6 +44,44 @@ function qs(params: Record<string, string | number | undefined>): string {
 // ---- Binance USD-M Futures ------------------------------------------------
 const BINANCE_FAPI = "https://fapi.binance.com";
 
+// Symbol precision filters (LOT_SIZE stepSize for qty, PRICE_FILTER tickSize for price).
+// Cached per symbol; exchangeInfo is a public endpoint (no auth/signature needed).
+const binancePrecisionCache = new Map<
+  string,
+  { lotStep: number; tickSize: number; minQty: number }
+>();
+
+async function binanceSymbolPrecision(
+  symbol: string,
+): Promise<{ lotStep: number; tickSize: number; minQty: number }> {
+  const hit = binancePrecisionCache.get(symbol);
+  if (hit) return hit;
+  const res = await fetch(
+    `${BINANCE_FAPI}/fapi/v1/exchangeInfo?symbol=${encodeURIComponent(symbol)}`,
+  );
+  const j = (await res.json()) as {
+    symbols?: Array<{
+      symbol: string;
+      filters?: Array<{ filterType: string; stepSize?: string; tickSize?: string; minQty?: string }>;
+    }>;
+  };
+  const s = (j.symbols ?? []).find((x) => x.symbol === symbol);
+  const lot = (s?.filters ?? []).find((f) => f.filterType === "LOT_SIZE");
+  const price = (s?.filters ?? []).find((f) => f.filterType === "PRICE_FILTER");
+  const info = {
+    lotStep: lot?.stepSize ? Number(lot.stepSize) : NaN,
+    tickSize: price?.tickSize ? Number(price.tickSize) : NaN,
+    minQty: lot?.minQty ? Number(lot.minQty) : 0,
+  };
+  binancePrecisionCache.set(symbol, info);
+  return info;
+}
+
+function floorToStep(v: number, step: number): number {
+  if (!Number.isFinite(step) || step <= 0) return v;
+  return Math.floor((v + 1e-9) / step) * step;
+}
+
 async function binanceSigned(
   creds: ExchangeCreds,
   method: "GET" | "POST" | "DELETE",
@@ -71,15 +109,25 @@ async function binancePlace(creds: ExchangeCreds, o: PlaceOrderInput): Promise<P
 
   const side = o.side === "long" ? "BUY" : "SELL";
   const type = o.entry ? "LIMIT" : "MARKET";
+
+  // Round qty/price to the contract's precision (stepSize / tickSize) — otherwise
+  // Binance rejects with code -1111 "Precision is over the maximum defined for this asset".
+  const pre = await binanceSymbolPrecision(o.symbol);
+  const qty = floorToStep(o.quantity, pre.lotStep);
+  if (qty <= 0) throw new Error(`Rounded qty 0 for ${o.symbol} from ${o.quantity} (step ${pre.lotStep})`);
+  const entry = o.entry != null ? floorToStep(o.entry, pre.tickSize) : o.entry;
+  const sl = o.stopLoss != null ? floorToStep(o.stopLoss, pre.tickSize) : o.stopLoss;
+  const tp = o.takeProfit != null ? floorToStep(o.takeProfit, pre.tickSize) : o.takeProfit;
+
   const params: Record<string, string | number | undefined> = {
     symbol: o.symbol,
     side,
     type,
-    quantity: o.quantity,
+    quantity: qty,
     newClientOrderId: o.clientOrderId,
   };
   if (type === "LIMIT") {
-    params.price = o.entry!;
+    params.price = entry!;
     params.timeInForce = "GTC";
   }
 
@@ -92,22 +140,22 @@ async function binancePlace(creds: ExchangeCreds, o: PlaceOrderInput): Promise<P
 
   // Best-effort attach SL / TP as reduce-only stop/limit orders
   const closeSide = side === "BUY" ? "SELL" : "BUY";
-  if (o.stopLoss) {
+  if (sl) {
     await binanceSigned(creds, "POST", "/fapi/v1/order", {
       symbol: o.symbol,
       side: closeSide,
       type: "STOP_MARKET",
-      stopPrice: o.stopLoss,
+      stopPrice: sl,
       closePosition: "true",
       newClientOrderId: `${o.clientOrderId}-sl`,
     }).catch(() => undefined);
   }
-  if (o.takeProfit) {
+  if (tp) {
     await binanceSigned(creds, "POST", "/fapi/v1/order", {
       symbol: o.symbol,
       side: closeSide,
       type: "TAKE_PROFIT_MARKET",
-      stopPrice: o.takeProfit,
+      stopPrice: tp,
       closePosition: "true",
       newClientOrderId: `${o.clientOrderId}-tp`,
     }).catch(() => undefined);

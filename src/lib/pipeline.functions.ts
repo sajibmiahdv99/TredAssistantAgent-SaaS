@@ -332,7 +332,7 @@ export async function fanOutToSubscribers(params: {
             signal_id: signalId,
             exchange_account_id: acct.id,
             symbol: parsed.symbol,
-            side: parsed.side === "long" ? "buy" : "sell",
+            side: parsed.side, // stored as 'long' | 'short' (orders_side_check constraint) — executor maps to BUY/SELL
             order_type: isSingle ? "market" : "limit",
             quantity: lvl.qty,
             price: lvl.price,
