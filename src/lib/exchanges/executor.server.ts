@@ -48,12 +48,12 @@ const BINANCE_FAPI = "https://fapi.binance.com";
 // Cached per symbol; exchangeInfo is a public endpoint (no auth/signature needed).
 const binancePrecisionCache = new Map<
   string,
-  { lotStep: number; tickSize: number; minQty: number }
+  { lotStep: number; tickSize: number; minQty: number; minNotional: number }
 >();
 
 async function binanceSymbolPrecision(
   symbol: string,
-): Promise<{ lotStep: number; tickSize: number; minQty: number }> {
+): Promise<{ lotStep: number; tickSize: number; minQty: number; minNotional: number }> {
   const hit = binancePrecisionCache.get(symbol);
   if (hit) return hit;
   const res = await fetch(
@@ -62,16 +62,22 @@ async function binanceSymbolPrecision(
   const j = (await res.json()) as {
     symbols?: Array<{
       symbol: string;
-      filters?: Array<{ filterType: string; stepSize?: string; tickSize?: string; minQty?: string }>;
+      filters?: Array<{ filterType: string; stepSize?: string; tickSize?: string; minQty?: string; minNotional?: string; notional?: string }>;
     }>;
   };
   const s = (j.symbols ?? []).find((x) => x.symbol === symbol);
   const lot = (s?.filters ?? []).find((f) => f.filterType === "LOT_SIZE");
   const price = (s?.filters ?? []).find((f) => f.filterType === "PRICE_FILTER");
+  const minNotionalFilter =
+    (s?.filters ?? []).find((f) => f.filterType === "MIN_NOTIONAL") ??
+    (s?.filters ?? []).find((f) => f.filterType === "NOTIONAL");
   const info = {
     lotStep: lot?.stepSize ? Number(lot.stepSize) : NaN,
     tickSize: price?.tickSize ? Number(price.tickSize) : NaN,
     minQty: lot?.minQty ? Number(lot.minQty) : 0,
+    minNotional: minNotionalFilter
+      ? Number(minNotionalFilter.minNotional ?? minNotionalFilter.notional ?? 0)
+      : 0,
   };
   binancePrecisionCache.set(symbol, info);
   return info;
@@ -80,6 +86,18 @@ async function binanceSymbolPrecision(
 function floorToStep(v: number, step: number): number {
   if (!Number.isFinite(step) || step <= 0) return v;
   return Math.floor((v + 1e-9) / step) * step;
+}
+
+function ceilToStep(v: number, step: number): number {
+  if (!Number.isFinite(step) || step <= 0) return v;
+  return Math.ceil((v - 1e-9) / step) * step;
+}
+
+// Reference price for the min-notional check on MARKET orders.
+async function binanceMarkPrice(symbol: string): Promise<number> {
+  const res = await fetch(`${BINANCE_FAPI}/fapi/v1/premiumIndex?symbol=${encodeURIComponent(symbol)}`);
+  const j = (await res.json()) as { markPrice?: string };
+  return Number(j.markPrice) || 0;
 }
 
 async function binanceSigned(
@@ -113,11 +131,22 @@ async function binancePlace(creds: ExchangeCreds, o: PlaceOrderInput): Promise<P
   // Round qty/price to the contract's precision (stepSize / tickSize) — otherwise
   // Binance rejects with code -1111 "Precision is over the maximum defined for this asset".
   const pre = await binanceSymbolPrecision(o.symbol);
-  const qty = floorToStep(o.quantity, pre.lotStep);
+  let qty = floorToStep(o.quantity, pre.lotStep);
   if (qty <= 0) throw new Error(`Rounded qty 0 for ${o.symbol} from ${o.quantity} (step ${pre.lotStep})`);
   const entry = o.entry != null ? floorToStep(o.entry, pre.tickSize) : o.entry;
   const sl = o.stopLoss != null ? floorToStep(o.stopLoss, pre.tickSize) : o.stopLoss;
   const tp = o.takeProfit != null ? floorToStep(o.takeProfit, pre.tickSize) : o.takeProfit;
+
+  // Binance USD-M minimum notional (e.g. 5 USDT). For market orders use the live mark price
+  // as the reference; for limit orders use the limit price. Bump qty up to meet the floor so
+  // the account can actually trade small balances instead of getting -4164.
+  if (pre.minNotional > 0) {
+    const refPrice = type === "LIMIT" && entry ? entry : await binanceMarkPrice(o.symbol);
+    if (refPrice > 0) {
+      const minQty = ceilToStep(pre.minNotional / refPrice, pre.lotStep);
+      if (qty < minQty) qty = minQty;
+    }
+  }
 
   const params: Record<string, string | number | undefined> = {
     symbol: o.symbol,
