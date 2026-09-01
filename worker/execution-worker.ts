@@ -17,6 +17,7 @@ import {
   type PlaceOrderInput,
 } from "../src/lib/exchanges/executor.server.ts";
 import { decryptSecret } from "../src/lib/crypto.server.ts";
+import { confirmPendingCryptoPayments } from "../src/lib/crypto-pay.confirm.server.ts";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // ---- Config ---------------------------------------------------------------
@@ -362,6 +363,19 @@ async function main(): Promise<void> {
       log("channel-poller", `error: ${e instanceof Error ? e.message : String(e)}`);
     }
   }, POLL_INTERVAL_MS);
+
+  // Crypto payment auto-confirm — discovers a matching on-chain USDT transfer
+  // (TRC-20 / BEP-20) for each pending invoice and activates the subscription,
+  // so the user never has to paste a TXID.
+  const CRYPTO_CONFIRM_INTERVAL_MS = Number(process.env.CRYPTO_CONFIRM_INTERVAL_MS ?? 60_000);
+  setInterval(async () => {
+    try {
+      const res = await confirmPendingCryptoPayments();
+      if (res.checked > 0) log("crypto-confirm", `checked=${res.checked} confirmed=${res.confirmed}`);
+    } catch (e) {
+      log("crypto-confirm", `error: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }, CRYPTO_CONFIRM_INTERVAL_MS);
 }
 
 main().catch((e) => {

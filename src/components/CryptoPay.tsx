@@ -283,7 +283,8 @@ export function CryptoPay() {
 
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">
-                After sending, paste the transaction hash (TXID) and verify:
+                Your subscription activates automatically once the transfer is detected (≈1 min).
+                Or paste the transaction hash (TXID) to activate instantly:
               </label>
               <div className="flex items-center gap-2">
                 <Input
@@ -302,8 +303,9 @@ export function CryptoPay() {
             </div>
             {txHash && (
               <p className="text-xs text-muted-foreground">
-                We check on-chain that this is a confirmed USDT ({invoice.network}) transfer to the
-                address above for at least <span className="font-medium">${invoice.amount}</span>.
+                No extra network fee — send exactly <span className="font-medium">${invoice.amount} USDT</span>.
+                We confirm automatically once the on-chain USDT ({invoice.network}) transfer to the
+                address above for the exact amount is detected.
               </p>
             )}
           </div>

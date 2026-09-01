@@ -72,6 +72,12 @@ function getNet(id: string): NetConfig {
   return n;
 }
 
+// Invoice numbers are stamped with their network so background auto-confirm and
+// verify can resolve the chain without needing a DB column: `TW-TRC-...`/`TW-BSC-...`.
+export function invoiceNetwork(invoiceNumber: string): "tron" | "bsc" {
+  return (invoiceNumber ?? "").toUpperCase().includes("-BSC-") ? "bsc" : "tron";
+}
+
 // ─── Public payment info ─────────────────────────────────────────────────────
 
 export const getCryptoPayInfo = createServerFn({ method: "GET" })
@@ -195,7 +201,7 @@ export const startCryptoPayment = createServerFn({ method: "POST" })
         .eq("id", subscriptionId);
     }
 
-    const invoiceNumber = `TW-${Date.now().toString(36).toUpperCase()}-${Math.random()
+    const invoiceNumber = `TW-${net.id.toUpperCase()}-${Date.now().toString(36).toUpperCase()}-${Math.random()
       .toString(36)
       .slice(2, 6)
       .toUpperCase()}`;
@@ -261,7 +267,7 @@ export const verifyCryptoPayment = createServerFn({ method: "POST" })
     if (invoice.status === "paid") return { paid: true as const, alreadyPaid: true as const };
     if (!invoice.subscription_id) throw new Error("Invoice has no attached subscription.");
 
-    const net = getNet(data.network);
+    const net = getNet(invoiceNetwork(data.invoiceNumber));
     const confirmed = net.network.toUpperCase().includes("BSC")
       ? await confirmOnchainUsdtBsc(net.address, data.txHash, invoice.amount)
       : await confirmOnchainUsdt(net.address, data.txHash, invoice.amount);
