@@ -25,7 +25,7 @@ const { data: inv, error: invErr } = await admin
   .select("id").single();
 if (invErr) { console.log("INV_INSERT_ERR", invErr.message); process.exit(1); }
 
-const { confirmPendingCryptoPayments } = await import("./src/lib/crypto-pay.confirm.server.ts");
+const { confirmPendingCryptoPayments } = await import("../src/lib/crypto-pay.confirm.server.ts");
 const res = await confirmPendingCryptoPayments();
 console.log("AUTO-CONFIRM RESULT:", JSON.stringify(res), "| expect checked>=1, confirmed=0 (no real transfer)");
 
