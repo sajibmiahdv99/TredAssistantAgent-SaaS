@@ -44,6 +44,7 @@ async function findBscTransfer(
   operator: string,
   minAmount: number,
   usedTx: Set<string>,
+  minLandedAtMs?: number,
 ): Promise<string | null> {
   const operatorTag = operator.toLowerCase();
   const padded = "0x" + operatorTag.slice(2).padStart(64, "0");
@@ -66,7 +67,7 @@ async function findBscTransfer(
         signal: AbortSignal.timeout(15000),
       });
       const json = (await res.json()) as {
-        result?: Array<{ topics: string[]; data: string; transactionHash: string }>;
+        result?: Array<{ topics: string[]; data: string; transactionHash: string; blockNumber: string }>;
         error?: { message?: string };
       };
       // A JSON-RPC error (e.g. "limit exceeded") has no result — treat it as a
@@ -80,6 +81,20 @@ async function findBscTransfer(
         const value = BigInt(`0x${l.data.slice(2, 66) || "0"}`);
         const amount = Number(value) / 10 ** USDT_BSC_DECIMALS;
         if (to.toLowerCase() === operatorTag && amount >= minAmount - NETWORK_FEE_ABSORB && amount <= minAmount + NETWORK_FEE_ABSORB && !usedTx.has(l.transactionHash)) {
+          // A payment must have LANDED at/after the invoice was created. This stops a
+          // stale transfer that is still inside the scan window from falsifying a newer
+          // invoice (e.g. the same tx reconfirming a second invoice on restart).
+          if (minLandedAtMs != null) {
+            const blk = await fetch(rpc, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getBlockByNumber", params: [l.blockNumber, false] }),
+              signal: AbortSignal.timeout(15000),
+            }).then((r) => r.json() as Promise<{ result?: { timestamp?: string }; error?: { message?: string } }>);
+            if (blk.error) throw new Error(`bsc block: ${blk.error.message ?? "unknown error"}`);
+            const landedMs = parseInt((blk.result?.timestamp ?? "0"), 16) * 1000;
+            if (landedMs < minLandedAtMs) continue;
+          }
           return l.transactionHash;
         }
       }
@@ -111,12 +126,14 @@ interface Trc20Transfer {
   to: string;
   value: string;
   token_info?: { decimals?: number };
+  block_timestamp?: number;
 }
 
 async function findTronTransfer(
   operator: string,
   minAmount: number,
   usedTx: Set<string>,
+  minLandedAtMs?: number,
 ): Promise<string | null> {
   const query = new URLSearchParams({ limit: "50", contract_address: USDT_TRON_CONTRACT, only_confirmed: "true" });
   const url = `https://api.trongrid.io/v1/accounts/${encodeURIComponent(operator)}/transactions/trc20?${query}`;
@@ -132,6 +149,8 @@ async function findTronTransfer(
       const decimals = t.token_info?.decimals ?? 6;
       const amount = Number(t.value) / 10 ** decimals;
       if (to === operator.toLowerCase() && amount >= minAmount - NETWORK_FEE_ABSORB && amount <= minAmount + NETWORK_FEE_ABSORB && !usedTx.has(t.transaction_id)) {
+        // Only match a transfer that landed at/after the invoice was created (see BSC path).
+        if (minLandedAtMs != null && (t.block_timestamp == null || t.block_timestamp < minLandedAtMs)) continue;
         return t.transaction_id;
       }
     }
@@ -151,7 +170,7 @@ export async function confirmPendingCryptoPayments(): Promise<{ checked: number;
 
   const { data: invoices, error } = await admin
     .from("invoices")
-    .select("id,amount,status,subscription_id,user_id,invoice_number")
+    .select("id,amount,status,subscription_id,user_id,invoice_number,created_at")
     .eq("status", "pending")
     .order("created_at", { ascending: true })
     .limit(20);
@@ -166,6 +185,7 @@ export async function confirmPendingCryptoPayments(): Promise<{ checked: number;
     subscription_id: string | null;
     user_id: string;
     invoice_number: string;
+    created_at: string;
   }>;
   if (!pending.length) return { checked: 0, confirmed: 0 };
 
@@ -179,7 +199,7 @@ export async function confirmPendingCryptoPayments(): Promise<{ checked: number;
     const operator = net === "bsc" ? process.env.BSC_USDT_ADDRESS : process.env.USDT_TRON_ADDRESS;
     if (!operator) continue;
 
-    const tx = net === "bsc" ? await findBscTransfer(operator, inv.amount, usedTx) : await findTronTransfer(operator, inv.amount, usedTx);
+    const tx = net === "bsc" ? await findBscTransfer(operator, inv.amount, usedTx, new Date(inv.created_at).getTime()) : await findTronTransfer(operator, inv.amount, usedTx, new Date(inv.created_at).getTime());
     if (!tx) continue;
 
     usedTx.add(tx);
