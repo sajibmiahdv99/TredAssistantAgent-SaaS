@@ -615,7 +615,7 @@ export async function ingestSignalForPersonalChannel(
           signal_id: signalRow.id,
           exchange_account_id: acct.id,
           symbol: parsed.symbol,
-          side: parsed.side === "long" ? "buy" : "sell",
+          side: parsed.side, // stored as 'long' | 'short' (orders_side_check constraint) — executor maps to BUY/SELL
           order_type: ownerIsSingle ? "market" : "limit",
           quantity: lvl.qty,
           price: lvl.price,
