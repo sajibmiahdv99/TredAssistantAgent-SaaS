@@ -8,6 +8,49 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { parseSignal, PARSER_VERSION, type ParsedSignal } from "@/lib/parser/signalParser";
 import { evaluateRisk } from "@/lib/risk/riskEngine";
 
+// ---- Market-aware balance basis -------------------------------------------
+// The app executes USD-M/perpetual positions. A signal with no explicit
+// leverage (the common case) is treated as a leveraged futures trade; only an
+// explicit 1x is treated as spot. Futures trades are sized on the futures
+// balance (assets ending in "-FUT"); spot trades on the spot USDT balance.
+export function isFuturesSignal(parsed: { leverage?: number | null } | null | undefined): boolean {
+  if (parsed?.leverage == null) return true; // default = futures (executor is futures-only)
+  return Number(parsed.leverage) > 1;
+}
+
+async function marketBalanceForUsers(
+  userIds: string[],
+  isFutures: boolean,
+): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  if (userIds.length === 0) return map;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: accts } = await supabaseAdmin
+    .from("exchange_accounts")
+    .select("id,user_id")
+    .in("user_id", userIds)
+    .eq("status", "active");
+  const acctIds = (accts ?? []).map((a) => a.id);
+  if (acctIds.length === 0) {
+    for (const u of userIds) map.set(u, 0);
+    return map;
+  }
+  const { data: rows } = await supabaseAdmin
+    .from("exchange_balances")
+    .select("user_id,asset,free")
+    .in("user_id", userIds)
+    .in("exchange_account_id", acctIds);
+  const sums = new Map<string, number>();
+  for (const r of rows ?? []) {
+    const a = String(r.asset ?? "").toUpperCase();
+    const match = isFutures ? a.endsWith("-FUT") : a === "USDT";
+    if (!match) continue;
+    sums.set(r.user_id, (sums.get(r.user_id) ?? 0) + Number(r.free ?? 0));
+  }
+  for (const u of userIds) map.set(u, sums.get(u) ?? 0);
+  return map;
+}
+
 // ============ Entry ladder helper ============
 // Pure function. Splits a risk-sized quantity across N limit entries stepping
 // away from the signal price. Returns a single-level result for the default
@@ -108,22 +151,19 @@ export async function fanOutToSubscribers(params: {
   const openCountMap = new Map<string, number>();
   const blockMap = new Map<string, string>();
   if (userIds.length > 0) {
-    const [{ data: balRows }, { data: orderRows }, { data: blockRows }] = await Promise.all([
-      supabaseAdmin
-        .from("user_balances")
-        .select("user_id,available_balance")
-        .in("user_id", userIds),
+    const [{ data: orderRows }, { data: blockRows }, mktBalances] = await Promise.all([
       supabaseAdmin
         .from("orders")
         .select("id,user_id")
         .in("user_id", userIds)
         .in("status", ["queued", "open", "filled"]),
       supabaseAdmin.from("trade_blocks").select("user_id,blocked_until").in("user_id", userIds),
+      marketBalanceForUsers(userIds, isFuturesSignal(parsed)),
     ]);
-    for (const b of balRows ?? []) balanceMap.set(b.user_id, Number(b.available_balance ?? 0));
     for (const o of orderRows ?? [])
       openCountMap.set(o.user_id, (openCountMap.get(o.user_id) ?? 0) + 1);
     for (const b of blockRows ?? []) if (b.blocked_until) blockMap.set(b.user_id, b.blocked_until);
+    for (const [uid, bal] of mktBalances) balanceMap.set(uid, bal);
   }
 
   let queued = 0;
@@ -484,14 +524,14 @@ export async function ingestSignalForPersonalChannel(
     return { signalId: signalRow.id, queued: false, reason: "no active risk settings for channel" };
   }
 
-  const { data: bal } = await supabaseAdmin
-    .from("user_balances")
-    .select("available_balance")
-    .eq("user_id", channel.user_id)
-    .maybeSingle();
-  const balance = Number(bal?.available_balance ?? 0);
+  // Balance basis is market-aware: futures trades size on the futures balance
+  // (USDT-FUT free), spot trades on the spot USDT balance. Never the combined total.
+  const balance =
+    (await marketBalanceForUsers([channel.user_id], isFuturesSignal(parsed))).get(
+      channel.user_id,
+    ) ?? 0;
   if (balance <= 0) {
-    return { signalId: signalRow.id, queued: false, reason: "no available balance" };
+    return { signalId: signalRow.id, queued: false, reason: "no available market balance" };
   }
 
   // Exchange selection priority: channel override -> user default -> first active.
