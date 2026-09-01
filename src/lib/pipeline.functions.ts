@@ -18,26 +18,46 @@ export function isFuturesSignal(parsed: { leverage?: number | null } | null | un
   return Number(parsed.leverage) > 1;
 }
 
+async function preferredActiveAccountMap(
+  userIds: string[],
+): Promise<Map<string, { id: string; exchangeCode: string }>> {
+  // Determine the ONE account that would execute a trade for each user so the
+  // balance-source matches dispatch exactly (never live+paper double-count).
+  // Priority: an active paper account (user explicitly toggled paper on) ->
+  // otherwise the oldest active account. Deterministic via created_at ASC.
+  const map = new Map<string, { id: string; exchangeCode: string }>();
+  if (userIds.length === 0) return map;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: accts } = await supabaseAdmin
+    .from("exchange_accounts")
+    .select("id,user_id,exchange_code")
+    .in("user_id", userIds)
+    .eq("status", "active")
+    .order("created_at", { ascending: true });
+  for (const a of accts ?? []) {
+    const cur = map.get(a.user_id);
+    if (!cur) map.set(a.user_id, { id: a.id, exchangeCode: a.exchange_code });
+    else if (a.exchange_code === "paper") map.set(a.user_id, { id: a.id, exchangeCode: a.exchange_code });
+  }
+  return map;
+}
+
 async function marketBalanceForUsers(
   userIds: string[],
   isFutures: boolean,
 ): Promise<Map<string, number>> {
   const map = new Map<string, number>();
   if (userIds.length === 0) return map;
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: accts } = await supabaseAdmin
-    .from("exchange_accounts")
-    .select("id,user_id")
-    .in("user_id", userIds)
-    .eq("status", "active");
-  const acctIds = (accts ?? []).map((a) => a.id);
+  const preferred = await preferredActiveAccountMap(userIds);
+  const acctIds = [...preferred.values()].map((a) => a.id);
   if (acctIds.length === 0) {
     for (const u of userIds) map.set(u, 0);
     return map;
   }
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: rows } = await supabaseAdmin
     .from("exchange_balances")
-    .select("user_id,asset,free")
+    .select("user_id,exchange_account_id,asset,free")
     .in("user_id", userIds)
     .in("exchange_account_id", acctIds);
   const sums = new Map<string, number>();
@@ -286,14 +306,18 @@ export async function fanOutToSubscribers(params: {
       });
     }
 
-    // Pick the user's first active exchange account.
-    const { data: acct } = await supabaseAdmin
+    // Pick the user's active exchange account — same priority as the balance
+    // source (paper-first, then oldest) so sizing and execution always agree.
+    const { data: activeAccts } = await supabaseAdmin
       .from("exchange_accounts")
       .select("id,exchange_code,status,last_error")
       .eq("user_id", s.user_id)
       .eq("status", "active")
-      .limit(1)
-      .maybeSingle();
+      .order("created_at", { ascending: true });
+    const acct =
+      (activeAccts ?? []).find((a) => a.exchange_code === "paper") ??
+      (activeAccts ?? [])[0] ??
+      null;
 
     if (!acct) {
       await supabaseAdmin.from("trade_logs").insert({

@@ -778,6 +778,98 @@ export const setExchangeAccountExecutionMode = createServerFn({ method: "POST" }
     return { ok: true };
   });
 
+// ============ Paper account balance control ============
+// The paper account has no real exchange to sync from, so its balance is a
+// user-set number stored as `exchange_balances` rows (asset USDT + USDT-FUT).
+// On/off maps to the account `status` (active = balance counts, inactive = off).
+
+async function assertOwnedPaperAccount(
+  supabase: SupabaseClient,
+  userId: string,
+  id: string,
+): Promise<{ exchangeCode: string; executionMode: string }> {
+  const { data, error } = await supabase
+    .from("exchange_accounts")
+    .select("id,exchange_code,execution_mode")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Account not found");
+  if (data.exchange_code !== "paper" && data.execution_mode !== "paper") {
+    throw new Error("Only paper accounts can have an editable balance");
+  }
+  return { exchangeCode: data.exchange_code, executionMode: data.execution_mode };
+}
+
+export const setPaperAccountBalance = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        exchange_account_id: z.string().uuid(),
+        balance: z.number().min(0).max(1_000_000_000),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertOwnedPaperAccount(context.supabase, context.userId, data.exchange_account_id);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const now = new Date().toISOString();
+
+    // Represent the pool as both a spot (USDT) and futures (USDT-FUT) balance so
+    // any market-specific sizing picks it up. `free` drives risk sizing.
+    const row = (asset: string) => ({
+      user_id: context.userId,
+      exchange_account_id: data.exchange_account_id,
+      asset,
+      free: data.balance,
+      used: 0,
+      total: data.balance,
+      usd_value: data.balance,
+      snapshot_at: now,
+    });
+
+    if (data.balance > 0) {
+      const { error } = await supabaseAdmin.from("exchange_balances").upsert(
+        [row("USDT"), row("USDT-FUT")],
+        { onConflict: "exchange_account_id,asset" },
+      );
+      if (error) throw new Error(error.message);
+    } else {
+      // Zero balance → clear the paper rows so they don't masquerade as assets.
+      const { error } = await supabaseAdmin
+        .from("exchange_balances")
+        .delete()
+        .eq("exchange_account_id", data.exchange_account_id)
+        .in("asset", ["USDT", "USDT-FUT"]);
+      if (error) throw new Error(error.message);
+    }
+
+    return { ok: true };
+  });
+
+export const setPaperAccountEnabled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        exchange_account_id: z.string().uuid(),
+        enabled: z.boolean(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertOwnedPaperAccount(context.supabase, context.userId, data.exchange_account_id);
+    const { error } = await context.supabase
+      .from("exchange_accounts")
+      .update({ status: data.enabled ? "active" : "inactive" })
+      .eq("id", data.exchange_account_id)
+      .eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // ============ Orders ============
 const ACTIVE_STATUSES = ["pending", "open", "partial", "submitted"];
 

@@ -22,14 +22,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Trash2, ArrowLeft, Zap, KeyRound, ExternalLink, RefreshCw } from "lucide-react";
+import { Trash2, ArrowLeft, Zap, KeyRound, ExternalLink, RefreshCw, Coins } from "lucide-react";
 import {
   listExchangeAccounts,
   addExchangeAccount,
   deleteExchangeAccount,
   revalidateExchangeAccount,
   setExchangeAccountExecutionMode,
+  setPaperAccountBalance,
+  setPaperAccountEnabled,
 } from "@/lib/user.functions";
+import { Switch } from "@/components/ui/switch";
 import { listExchangeBalances, syncExchangeBalance } from "@/lib/balances.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { ShieldCheck, ShieldAlert } from "lucide-react";
@@ -126,13 +129,40 @@ function Page() {
   const syncFn = useServerFn(syncExchangeBalance);
   const revalFn = useServerFn(revalidateExchangeAccount);
   const modeFn = useServerFn(setExchangeAccountExecutionMode);
+  const paperBalFn = useServerFn(setPaperAccountBalance);
+  const paperEnabledFn = useServerFn(setPaperAccountEnabled);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [paperBalInput, setPaperBalInput] = useState<Record<string, string>>({});
   const modeM = useMutation({
     mutationFn: (v: { id: string; mode: "live" | "paper" }) =>
       modeFn({ data: { exchange_account_id: v.id, execution_mode: v.mode } }),
     onSuccess: (_d, v) => {
       toast.success(v.mode === "paper" ? "Switched to paper trading" : "Switched to live trading");
       qc.invalidateQueries({ queryKey: ["exchange-accounts"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const paperBalM = useMutation({
+    mutationFn: (v: { id: string; balance: number }) =>
+      paperBalFn({ data: { exchange_account_id: v.id, balance: v.balance } }),
+    onSuccess: () => {
+      toast.success("Paper balance updated");
+      qc.invalidateQueries({ queryKey: ["exchange-balances"] });
+      qc.invalidateQueries({ queryKey: ["exchange-accounts"] });
+      qc.invalidateQueries({ queryKey: ["overview"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const paperEnabledM = useMutation({
+    mutationFn: (v: { id: string; enabled: boolean }) =>
+      paperEnabledFn({ data: { exchange_account_id: v.id, enabled: v.enabled } }),
+    onSuccess: (_d, v) => {
+      toast.success(v.enabled ? "Paper balance ON" : "Paper balance OFF");
+      qc.invalidateQueries({ queryKey: ["exchange-accounts"] });
+      qc.invalidateQueries({ queryKey: ["exchange-balances"] });
+      qc.invalidateQueries({ queryKey: ["overview"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -441,6 +471,10 @@ function Page() {
             const top = [...rows]
               .sort((a, b) => Number(b.usd_value ?? 0) - Number(a.usd_value ?? 0))
               .slice(0, 4);
+            const isPaper =
+              acc.exchange_code === "paper" ||
+              (acc as { execution_mode?: string }).execution_mode === "paper";
+            const paperCurrent = Number(rows.find((r) => r.asset === "USDT")?.total ?? 0);
             return (
               <Card key={acc.id} className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
@@ -549,6 +583,65 @@ function Page() {
                     </div>
                   )}
                 </div>
+                {isPaper && (
+                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <Coins className="h-4 w-4 text-sky-400" />
+                        <div>
+                          <p className="text-sm font-medium">Paper balance</p>
+                          <p className="text-xs text-muted-foreground">
+                            {acc.status === "active"
+                              ? "In use — this balance sizes paper trades"
+                              : "Disabled — the live/spot account is used for sizing"}
+                          </p>
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {acc.status === "active" ? "On" : "Off"}
+                        <Switch
+                          checked={acc.status === "active"}
+                          disabled={paperEnabledM.isPending}
+                          onCheckedChange={(c) => paperEnabledM.mutate({ id: acc.id, enabled: c })}
+                        />
+                      </label>
+                    </div>
+                    <div className="mt-3 flex items-end gap-2">
+                      <div className="flex-1">
+                        <Label htmlFor={`pb-${acc.id}`} className="text-xs">
+                          Paper balance (USDT)
+                        </Label>
+                        <Input
+                          id={`pb-${acc.id}`}
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          className="mt-1"
+                          placeholder={String(paperCurrent)}
+                          value={paperBalInput[acc.id] ?? String(paperCurrent)}
+                          onChange={(e) =>
+                            setPaperBalInput((m) => ({ ...m, [acc.id]: e.target.value }))
+                          }
+                        />
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={paperBalM.isPending}
+                        onClick={() => {
+                          const n = Number(paperBalInput[acc.id] ?? paperCurrent);
+                          if (!Number.isFinite(n) || n < 0) {
+                            toast.error("Enter a valid amount");
+                            return;
+                          }
+                          paperBalM.mutate({ id: acc.id, balance: n });
+                        }}
+                      >
+                        {paperBalM.isPending ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </Card>
             );
           })}
