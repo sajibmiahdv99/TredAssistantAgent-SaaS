@@ -23,8 +23,11 @@ export function RelativeTime({
     return () => window.clearInterval(id);
   }, []);
 
-  const rel = formatDistanceToNowStrict(value, { addSuffix: true });
-  const abs = format(value, "MMM d, yyyy HH:mm:ss");
+  const rel = useMemo(
+    () => formatDistanceToNowStrict(value, { addSuffix: true }),
+    [now, value],
+  );
+  const abs = useMemo(() => format(value, "MMM d, yyyy HH:mm:ss"), [value]);
 
   return (
     <time
