@@ -16,17 +16,14 @@ export function RelativeTime({
   title?: string;
 }) {
   const value = useMemo(() => new Date(date), [date]);
-  const [now, setNow] = useState(() => Date.now());
+  const [, setTick] = useState(() => Date.now());
 
   useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 30_000);
+    const id = window.setInterval(() => setTick(Date.now()), 30_000);
     return () => window.clearInterval(id);
   }, []);
 
-  const rel = useMemo(
-    () => formatDistanceToNowStrict(value, { addSuffix: true }),
-    [now, value],
-  );
+  const rel = formatDistanceToNowStrict(value, { addSuffix: true });
   const abs = useMemo(() => format(value, "MMM d, yyyy HH:mm:ss"), [value]);
 
   return (
