@@ -19,10 +19,19 @@ export async function resolveTelegramIdentity(
 ): Promise<{ email: string; password: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { encryptSession } = await import("@/lib/crypto.server");
-  // telegram_identities is newer than the generated types — use an untyped handle.
+  type TelegramIdentityRow = { user_id: string };
+  type TelegramIdentityQuery = {
+    eq: (
+      column: string,
+      value: string | number,
+    ) => { maybeSingle: () => Promise<{ data: TelegramIdentityRow | null }> };
+  };
+
+  // telegram_identities is newer than the generated types — provide the minimal
+  // query shape used here instead of falling back to `any`.
   const db = supabaseAdmin as unknown as {
     from: (table: string) => {
-      select: (cols: string) => any;
+      select: (cols: string) => TelegramIdentityQuery;
       insert: (rows: unknown) => Promise<{ error: unknown }>;
     };
   };
