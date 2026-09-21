@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, Outlet, useRouter, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -81,7 +81,6 @@ const sections: { label: string; items: NavItem[] }[] = [
   },
 ];
 
-const allNav = sections.flatMap((s) => s.items);
 
 export function AppShell({ children }: { children?: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -92,10 +91,10 @@ export function AppShell({ children }: { children?: ReactNode }) {
   const roles = useQuery({ queryKey: ["my-roles"], queryFn: () => getMyRoles() });
   const isAdmin = roles.data?.isAdmin;
 
-  async function signOut() {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     router.navigate({ to: "/auth", replace: true });
-  }
+  }, [router]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -109,11 +108,14 @@ export function AppShell({ children }: { children?: ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  function go(to: string) {
-    router.navigate({ to: to as never });
-    setPaletteOpen(false);
-    setMenuOpen(false);
-  }
+  const go = useCallback(
+    (to: string) => {
+      router.navigate({ to: to as never });
+      setPaletteOpen(false);
+      setMenuOpen(false);
+    },
+    [router],
+  );
 
   const paletteGroups = useMemo<CommandGroup[]>(() => {
     const navGroups: CommandGroup[] = sections.map((section) => ({
@@ -151,7 +153,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
       ],
     };
     return [...navGroups, actions];
-  }, [isAdmin]);
+  }, [go, isAdmin, signOut]);
 
   const activeLink = (item: NavItem) =>
     item.exact ? pathname === item.to : pathname.startsWith(item.to);
