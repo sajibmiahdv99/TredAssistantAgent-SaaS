@@ -1,6 +1,6 @@
 // Supabase Auth HTTP hook — "before user created".
 // Called by Supabase Auth with { user, metadata: { ip_address, ... } }.
-// Returns { decision: "allow" | "deny", message? }.
+// Returns {} to allow, or an error object to reject signup.
 //
 // Checks the signup IP against:
 //   1. The app's own signup_blocked_networks table (exact + CIDR prefix).
@@ -9,43 +9,41 @@
 //
 // Wire-up: Supabase Dashboard → Auth → Hooks → "before user created" →
 // HTTP hook → URL https://<domain>/api/public/signup-hook
-// (no secret token needed; the hook is public by design and returns deny
-//  only for clear abuse signals).
+// Set the same Standard Webhooks secret in SUPABASE_AUTH_HOOK_SECRET on the server.
 
 import { createFileRoute } from "@tanstack/react-router";
+import { BlockList, isIP } from "node:net";
+import { verifyAuthHookSignature } from "@/lib/auth-hook-signature.server";
 
-const BLOCKED_IP_CACHE_TTL_MS = 60_000;
+let cachedBlocks: { list: BlockList; expiresAt: number } | null = null;
 
 async function isIpBlockedInDb(ip: string): Promise<boolean> {
+  const family = isIP(ip) === 6 ? "ipv6" : "ipv4";
+  if (cachedBlocks && cachedBlocks.expiresAt > Date.now()) return cachedBlocks.list.check(ip, family);
   try {
     const { createClient } = await import("@supabase/supabase-js");
     const url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) return false;
+    if (!url || !key) throw new Error("Signup configuration unavailable");
     const sb = createClient(url, key, { auth: { persistSession: false } });
 
-    // Exact match
-    const { data: exact } = await sb
+    const { data, error, count } = await sb
       .from("signup_blocked_networks")
-      .select("id")
-      .eq("ip_or_cidr", ip)
-      .limit(1);
-    if (exact?.length) return true;
-
-    // /24 prefix match (simple heuristic — covers most blocklists)
-    const parts = ip.split(".");
-    if (parts.length === 4) {
-      const cidr24 = `${parts[0]}.${parts[1]}.${parts[2]}.0/24`;
-      const { data: p24 } = await sb
-        .from("signup_blocked_networks")
-        .select("id")
-        .eq("ip_or_cidr", cidr24)
-        .limit(1);
-      if (p24?.length) return true;
+      .select("cidr", { count: "exact" })
+      .abortSignal(AbortSignal.timeout(2000));
+    if (error) throw new Error("Signup blocklist unavailable");
+    if (count !== null && count > (data?.length ?? 0)) throw new Error("Signup blocklist incomplete");
+    const blocks = new BlockList();
+    for (const row of data ?? []) {
+      const [address, prefix] = row.cidr.split("/");
+      const type = isIP(address) === 6 ? "ipv6" : "ipv4";
+      if (prefix === undefined) blocks.addAddress(address, type);
+      else blocks.addSubnet(address, Number(prefix), type);
     }
-    return false;
+    cachedBlocks = { list: blocks, expiresAt: Date.now() + 60_000 };
+    return blocks.check(ip, family);
   } catch {
-    return false;
+    throw new Error("Signup blocklist unavailable");
   }
 }
 
@@ -59,7 +57,7 @@ async function ipApiReputation(ip: string): Promise<{
     const res = await fetch(
       `http://ip-api.com/json/${ip}?fields=status,countryCode,proxy,hosting,query`,
       {
-        signal: AbortSignal.timeout(3000),
+        signal: AbortSignal.timeout(700),
       },
     );
     if (!res.ok) return { proxy: false, hosting: false, risk: "low" };
@@ -92,7 +90,7 @@ async function abuseIpdbReputation(ip: string): Promise<number | null> {
       `https://api.abuseipdb.com/api/v2/check?ipAddress=${ip}&maxAgeInDays=30`,
       {
         headers: { Key: key, Accept: "application/json" },
-        signal: AbortSignal.timeout(3000),
+        signal: AbortSignal.timeout(700),
       },
     );
     if (!res.ok) return null;
@@ -107,6 +105,11 @@ export const Route = createFileRoute("/api/public/signup-hook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const raw = await request.text();
+        const hookSecret = process.env.SUPABASE_AUTH_HOOK_SECRET;
+        if (!hookSecret || !verifyAuthHookSignature(raw, request.headers, hookSecret)) {
+          return Response.json({ error: { http_code: 401, message: "Invalid hook signature" } }, { status: 401 });
+        }
         // Rate limit: 30 signup-hook calls/min/IP (brute-force protection).
         const { rateLimitMiddleware } = await import("@/lib/rate-limit");
         const limited = rateLimitMiddleware(request, { windowMs: 60_000, maxRequests: 30 });
@@ -114,42 +117,44 @@ export const Route = createFileRoute("/api/public/signup-hook")({
 
         let body: { user?: { email?: string }; metadata?: { ip_address?: string } } = {};
         try {
-          body = (await request.json()) as typeof body;
+          body = JSON.parse(raw) as typeof body;
         } catch {
-          return Response.json({ decision: "allow" });
+          return Response.json({ error: { http_code: 400, message: "Invalid hook payload" } }, { status: 400 });
         }
 
         const ip = body.metadata?.ip_address;
         // No IP info — can't judge, allow (auth still handles credentials).
-        if (!ip) return Response.json({ decision: "allow" });
+        if (!ip) return Response.json({});
+        if (!isIP(ip)) return Response.json({ error: { http_code: 400, message: "Invalid signup IP" } }, { status: 400 });
 
         // 1. Local blocklist
-        if (await isIpBlockedInDb(ip)) {
+        let blocked: boolean;
+        try { blocked = await isIpBlockedInDb(ip); } catch {
+          return Response.json({ error: { http_code: 503, message: "Signup checks temporarily unavailable" } }, { status: 503 });
+        }
+        if (blocked) {
           return Response.json({
-            decision: "deny",
-            message: "Signup from this network is blocked.",
-          });
+            error: { http_code: 403, message: "Signup from this network is blocked." },
+          }, { status: 403 });
         }
 
         // 2. ip-api reputation
         const rep = await ipApiReputation(ip);
         if (rep.proxy || rep.hosting) {
           return Response.json({
-            decision: "deny",
-            message: "Signups from proxies/VPNs are not allowed.",
-          });
+            error: { http_code: 403, message: "Signups from proxies/VPNs are not allowed." },
+          }, { status: 403 });
         }
 
         // 3. AbuseIPDB (optional key)
         const score = await abuseIpdbReputation(ip);
         if (score != null && score >= 50) {
           return Response.json({
-            decision: "deny",
-            message: "This IP address has been flagged for abuse.",
-          });
+            error: { http_code: 403, message: "This IP address has been flagged for abuse." },
+          }, { status: 403 });
         }
 
-        return Response.json({ decision: "allow" });
+        return Response.json({});
       },
     },
   },

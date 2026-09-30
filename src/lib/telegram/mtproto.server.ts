@@ -183,6 +183,13 @@ export async function startQrLogin(sessionId: string): Promise<QrLoginStartResul
       token,
       expiresAt: Date.now() + QR_SESSION_TTL_MS,
     });
+    // Abandoned approval dialogs must release their live MTProto connection.
+    const expiry = setTimeout(() => {
+      if (qrSessions.get(sessionId)?.client !== client) return;
+      qrSessions.delete(sessionId);
+      void client.disconnect().catch(() => {});
+    }, QR_SESSION_TTL_MS);
+    expiry.unref();
     return { loginToken: token.toString("base64url"), expires: Number(result.expires) };
   } catch (err) {
     await client.disconnect().catch(() => {});
