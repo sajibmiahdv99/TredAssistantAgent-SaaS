@@ -325,14 +325,16 @@ export const startTelegramQrLogin = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ label: z.string().min(1).max(64) }).parse(d))
   .handler(async ({ data, context }) => {
     const { startQrLogin, friendlyTelegramError } = await import("@/lib/telegram/mtproto.server");
-    const { data: inserted, error } = await context.supabase
+    // Authentication above fixes the owner; credentials stay server-only.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: inserted, error } = await supabaseAdmin
       .from("telegram_accounts")
-      .insert({
+      .upsert({
         user_id: context.userId,
         label: data.label,
         status: "awaiting_qr",
         last_error: null,
-      })
+      }, { onConflict: "user_id" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
@@ -344,7 +346,7 @@ export const startTelegramQrLogin = createServerFn({ method: "POST" })
         expires: qr.expires,
       };
     } catch (err) {
-      await context.supabase.from("telegram_accounts").delete().eq("id", inserted.id);
+      await supabaseAdmin.from("telegram_accounts").update({ status: "invalid", last_error: friendlyTelegramError(err) }).eq("id", inserted.id).eq("user_id", context.userId);
       throw new Error(friendlyTelegramError(err));
     }
   });

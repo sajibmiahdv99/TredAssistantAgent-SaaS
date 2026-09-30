@@ -8,6 +8,10 @@ RUN npm ci --legacy-peer-deps --no-audit --no-fund
 
 # Copy source and build
 COPY . .
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_PUBLISHABLE_KEY
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
 RUN npm run build
 
 # ---- Production stage ----

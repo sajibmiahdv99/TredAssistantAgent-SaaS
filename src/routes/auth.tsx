@@ -30,6 +30,10 @@ function AuthPage() {
   const [name, setName] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [info, setInfo] = useState<string | null>(null);
+  const [isRecovery, setIsRecovery] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [providers, setProviders] = useState({ google: false, apple: false });
 
   // MFA challenge state
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
@@ -127,27 +131,73 @@ function AuthPage() {
   }
 
   useEffect(() => {
+    const controller = new AbortController();
+    fetch(`${import.meta.env.VITE_SUPABASE_URL}/auth/v1/settings`, {
+      headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+      signal: controller.signal,
+    }).then((response) => response.ok ? response.json() : null).then((settings) => {
+      if (settings) setProviders({ google: settings.external?.google === true, apple: settings.external?.apple === true });
+    }).catch(() => {});
+    if (new URLSearchParams(window.location.hash.slice(1)).get("type") === "recovery") {
+      setIsRecovery(true);
+    }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setIsRecovery(true);
+        setPassword("");
+        setErr(null);
+      }
+    });
     // If arriving here via router-guard redirect with an active aal1 session,
     // immediately show the TOTP challenge without requiring password re-entry.
     checkAalAndMaybePromptMfa().catch(() => {});
+    return () => { controller.abort(); subscription.unsubscribe(); };
   }, []);
+
+  async function updatePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    if (password !== confirmPassword) {
+      setErr("Passwords must match.");
+      return;
+    }
+    setBusy(true);
+    try {
+      if (await checkAalAndMaybePromptMfa()) return;
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      await supabase.auth.signOut();
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      setIsRecovery(false);
+      setIsSignup(false);
+      setPassword("");
+      setConfirmPassword("");
+      setInfo("Password updated. Sign in with your new password.");
+    } catch (error) {
+      setErr(error instanceof Error ? error.message : "Password update failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
+    setInfo(null);
     setBusy(true);
     try {
       if (isSignup) {
         const emailRedirectTo = destination
           ? `${window.location.origin}${destination}`
           : window.location.origin;
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: { emailRedirectTo, data: { full_name: name } },
         });
         if (error) throw error;
-        goAfterAuth();
+        if (data.session) goAfterAuth();
+        else setInfo("Check your inbox and confirm your email before signing in.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -175,7 +225,8 @@ function AuthPage() {
         code: mfaCode.trim(),
       });
       if (v.error) throw v.error;
-      goAfterAuth();
+      if (isRecovery) setMfaFactorId(null);
+      else goAfterAuth();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Invalid code. Please try again.");
       setMfaCode("");
@@ -219,7 +270,8 @@ function AuthPage() {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth`,
       });
-      setErr(error ? error.message : "Check your inbox to reset your password.");
+      if (error) setErr(error.message);
+      else setInfo("Check your inbox to reset your password.");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Password reset failed.");
     }
@@ -272,6 +324,22 @@ function AuthPage() {
       </div>
     );
   }
+
+  if (isRecovery) return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <form onSubmit={updatePassword} className="w-full max-w-md space-y-5 rounded-2xl border border-border bg-card p-8">
+        <h1 className="text-2xl font-semibold">Choose a new password</h1>
+        <label className="block">New password
+          <input type="password" autoComplete="new-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} className="mt-2 w-full rounded-md border border-border bg-background px-4 py-3" />
+        </label>
+        <label className="block">Confirm new password
+          <input type="password" autoComplete="new-password" required minLength={8} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="mt-2 w-full rounded-md border border-border bg-background px-4 py-3" />
+        </label>
+        {err && <p role="alert" className="text-sm text-destructive">{err}</p>}
+        <button disabled={busy} className="w-full rounded-md bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-50">{busy ? "Updating…" : "Update password"}</button>
+      </form>
+    </div>
+  );
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -341,13 +409,14 @@ function AuthPage() {
           </label>
 
           {err && <p className="text-center text-sm text-destructive">{err}</p>}
+          {info && <p role="status" className="text-center text-sm text-primary">{info}</p>}
 
           <button
             type="submit"
             disabled={busy}
             className="w-full rounded-md bg-primary px-4 py-3 text-base font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
-            {busy ? "…" : "Login"}
+            {busy ? "…" : isSignup ? "Create account" : "Login"}
           </button>
         </form>
 
@@ -370,7 +439,7 @@ function AuthPage() {
           <div className="h-px flex-1 bg-border" />
         </div>
         <div className="mt-6 flex items-center justify-center gap-6">
-          <button
+          {providers.google && <button
             type="button"
             onClick={() => socialLogin("google")}
             title="Continue with Google"
@@ -382,8 +451,8 @@ function AuthPage() {
               <path fill="#FBBC05" d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.62H1.28a12 12 0 0 0 0 10.76l3.99-3.09z" />
               <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42A11.97 11.97 0 0 0 12 0 12 12 0 0 0 1.28 6.62l3.99 3.09C6.22 6.86 8.87 4.75 12 4.75z" />
             </svg>
-          </button>
-          <button
+          </button>}
+          {providers.apple && <button
             type="button"
             onClick={() => socialLogin("apple")}
             title="Continue with Apple"
@@ -392,7 +461,7 @@ function AuthPage() {
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
               <path d="M17.05 12.54c-.02-2.51 2.05-3.72 2.14-3.78-1.17-1.71-2.99-1.94-3.63-1.97-1.54-.16-3.01.91-3.79.91-.78 0-1.99-.89-3.27-.86-1.68.02-3.23.98-4.09 2.48-1.75 3.03-.45 7.51 1.25 9.97.83 1.2 1.82 2.55 3.12 2.5 1.25-.05 1.73-.81 3.24-.81s1.94.81 3.27.78c1.35-.02 2.2-1.22 3.03-2.43.95-1.4 1.34-2.75 1.36-2.82-.03-.01-2.61-1.01-2.63-3.97zM14.5 4.8c.69-.84 1.16-2 1.03-3.16-1 .04-2.2.66-2.91 1.5-.64.74-1.2 1.93-1.05 3.07 1.11.09 2.24-.56 2.93-1.41z" />
             </svg>
-          </button>
+          </button>}
           <button
             type="button"
             onClick={() => socialLogin("telegram")}

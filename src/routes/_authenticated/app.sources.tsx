@@ -518,6 +518,7 @@ function Page() {
                     <Button type="submit" disabled={startQrMut.isPending}>
                       {startQrMut.isPending ? "Creating…" : "Continue"}
                     </Button>
+                    {startQrMut.error && <p role="alert" className="text-sm text-destructive">{startQrMut.error.message}</p>}
                   </DialogFooter>
                 </form>
               ) : (

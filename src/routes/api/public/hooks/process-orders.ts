@@ -46,6 +46,18 @@ export const Route = createFileRoute("/api/public/hooks/process-orders")({
           .limit(BATCH);
 
         for (const o of queued ?? []) {
+          // Only the caller that changes queued -> dispatched may execute this
+          // order; a retry or second scheduler must not place it again.
+          const { data: claimed, error: claimError } = await supabaseAdmin
+            .from("orders")
+            .update({ status: "dispatched" })
+            .eq("id", o.id)
+            .eq("status", "queued")
+            .select("id");
+          if (claimError || !claimed?.length) {
+            results.skipped++;
+            continue;
+          }
           if (!o.exchange_account_id) {
             await markRejected(
               o.id,
@@ -61,6 +73,7 @@ export const Route = createFileRoute("/api/public/hooks/process-orders")({
               "id,exchange_code,encrypted_api_key,encrypted_api_secret,passphrase,status,last_error,execution_mode",
             )
             .eq("id", o.exchange_account_id)
+            .eq("user_id", o.user_id)
             .maybeSingle();
           if (!acct) {
             await markRejected(
@@ -243,6 +256,7 @@ export const Route = createFileRoute("/api/public/hooks/process-orders")({
             .from("exchange_accounts")
             .select("exchange_code,encrypted_api_key,encrypted_api_secret,passphrase")
             .eq("id", o.exchange_account_id)
+            .eq("user_id", o.user_id)
             .maybeSingle();
           if (!acct) continue;
           try {
@@ -295,6 +309,7 @@ export const Route = createFileRoute("/api/public/hooks/process-orders")({
             .from("exchange_accounts")
             .select("exchange_code,encrypted_api_key,encrypted_api_secret")
             .eq("id", o.exchange_account_id)
+            .eq("user_id", o.user_id)
             .maybeSingle();
           if (!acct) continue;
           try {

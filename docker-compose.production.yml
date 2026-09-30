@@ -1,0 +1,62 @@
+services:
+  app:
+    image: tred-production:local
+    build:
+      context: .
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:?Set public Supabase URL}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:?Set public Supabase key}
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file: .env
+    volumes:
+      - /opt/tred/ops:/ops:ro
+      - /opt/tred/backups:/opt/tred/backups
+      - /opt/tred/app/.env:/opt/tred/app/.env:ro
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/public/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+  worker:
+    image: tred-production:local
+    command: ["node", "node_modules/tsx/dist/cli.mjs", "worker/production-worker.ts"]
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      APP_INTERNAL_URL: http://app:3000
+    depends_on:
+      app:
+        condition: service_healthy
+    stop_grace_period: 100s
+    healthcheck:
+      test: ["CMD", "node", "-e", "const f=require('fs');process.exit(Date.now()-Number(f.readFileSync('/tmp/tred-worker-heartbeat','utf8'))<120000?0:1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
