@@ -128,24 +128,27 @@ async function claimQueued(): Promise<OrderRow[]> {
   const rows = (data ?? []) as OrderRow[];
   if (!rows.length) return [];
 
-  // Atomic-ish claim: flip to dispatched, only if still queued.
+  // Atomic-ish claim: flip to dispatched, only if still queued. The update
+  // returns exactly the rows THIS worker flipped — process just those, so a
+  // second concurrent worker that read the same queued rows can't place the
+  // same order twice.
   const ids = rows.map((r) => r.id);
-  const { error: upErr, count } = await sb
+  const { data: claimedRows, error: upErr } = await sb
     .from("orders")
     .update({ status: "dispatched" })
     .in("id", ids)
     .eq("status", "queued")
-    .select("id");
+    .select("*");
   if (upErr) {
     log("claim", `update error: ${upErr.message}`);
     return [];
   }
-  const claimed = (count ?? []) as unknown[];
-  for (const r of rows) {
+  const claimed = (claimedRows ?? []) as OrderRow[];
+  for (const r of claimed) {
     await insertEvent(r.id, r.user_id, "claim", "queued", "dispatched", {});
   }
   log("claim", `${claimed.length}/${rows.length} orders dispatched`);
-  return rows;
+  return claimed;
 }
 
 // ---- Step 2: place ----------------------------------------------------------

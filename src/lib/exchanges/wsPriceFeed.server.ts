@@ -44,6 +44,10 @@ let manualClosed = false;
 const MAX_RECONNECT_DELAY_MS = 30_000;
 const PING_INTERVAL_MS = 20_000;
 const STALE_AFTER_MS = 60_000; // a price older than this is treated as stale
+// WebSocket.OPEN per the WHATWG spec — defined locally because the WebSocket
+// global may be absent (Node <22, bare test envs), and referencing
+// `WebSocket.OPEN` directly would throw a ReferenceError.
+const WS_OPEN = 1;
 
 // ---- Binance ----------------------------------------------------------------
 
@@ -165,10 +169,13 @@ function scheduleReconnect(): void {
   }, delay);
 }
 
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+
 function startHeartbeat(): void {
-  setInterval(() => {
+  if (heartbeatTimer) return; // never stack duplicate heartbeat intervals
+  heartbeatTimer = setInterval(() => {
     // Binance requires a ping frame every 20s or it drops the connection.
-    if (socket && socket.readyState === WebSocket.OPEN) {
+    if (socket && socket.readyState === WS_OPEN) {
       try {
         socket.send(JSON.stringify({ method: "PING" }));
       } catch {
@@ -204,7 +211,7 @@ export function getWsPrices(): WsPriceMap {
 
 export function isWsFeedActive(): boolean {
   return (
-    (socket?.readyState === WebSocket.OPEN || bybitSocket?.readyState === WebSocket.OPEN) &&
+    (socket?.readyState === WS_OPEN || bybitSocket?.readyState === WS_OPEN) &&
     Object.keys(prices).length > 0
   );
 }
@@ -246,7 +253,8 @@ export function subscribeSymbols(symbols: string[]): void {
 
 /** Start the feed (idempotent). Call once at server boot. */
 export function startWsPriceFeed(): void {
-  if (socket || bybitSocket || manualClosed) return;
+  manualClosed = false; // explicit start re-arms the feed after a stop
+  if (socket || bybitSocket) return;
   connectBinance();
   connectBybit();
   startHeartbeat();
@@ -258,6 +266,10 @@ export function stopWsPriceFeed(): void {
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
+  }
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
   }
   if (socket) {
     try {

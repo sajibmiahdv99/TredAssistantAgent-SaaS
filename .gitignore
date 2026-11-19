@@ -18,6 +18,11 @@ dist-ssr
 
 # Secrets — never commit real credentials (service role key, API keys)
 .env
+.env.*
+!.env.example
+
+# Supabase CLI local state (linked project ref, versions) — machine-specific
+supabase/.temp/
 
 # Wrangler / Cloudflare
 .wrangler/

@@ -1,8 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 
-// TODO: replace with your project URL once a project name or custom domain is set.
-const BASE_URL = "";
+// Base URL for absolute sitemap links: prefer the configured public app URL,
+// otherwise fall back to the origin of the incoming request.
+function resolveBaseUrl(request: Request): string {
+  const configured = process.env.VITE_APP_URL?.trim();
+  const base = configured || new URL(request.url).origin;
+  return base.replace(/\/+$/, "");
+}
 
 interface SitemapEntry {
   path: string;
@@ -13,7 +18,8 @@ interface SitemapEntry {
 export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
-      GET: async () => {
+      GET: async ({ request }) => {
+        const BASE_URL = resolveBaseUrl(request);
         const entries: SitemapEntry[] = [
           { path: "/", changefreq: "weekly", priority: "1.0" },
           { path: "/pricing", changefreq: "monthly", priority: "0.9" },
