@@ -31,6 +31,7 @@ export const Route = createFileRoute("/api/public/hooks/process-orders")({
           placeExchangeOrder,
           cancelExchangeOrder,
           fetchExchangeOrderStatus,
+          fetchExchangeOrderByClientId,
           fetchExchangeTicker,
           isExchangeExecutable,
         } = await import("@/lib/exchanges/executor.server");
@@ -132,14 +133,14 @@ export const Route = createFileRoute("/api/public/hooks/process-orders")({
             continue;
           }
 
-          try {
-            const creds = {
-              apiKey: decryptSecret(acct.encrypted_api_key),
-              apiSecret: decryptSecret(acct.encrypted_api_secret),
-              passphrase: acct.passphrase ? decryptSecret(acct.passphrase) : undefined,
-            };
-            const clientOrderId = o.client_order_id ?? `lov-${o.id.slice(0, 12)}`;
+          const creds = {
+            apiKey: decryptSecret(acct.encrypted_api_key),
+            apiSecret: decryptSecret(acct.encrypted_api_secret),
+            passphrase: acct.passphrase ? decryptSecret(acct.passphrase) : undefined,
+          };
+          const clientOrderId = o.client_order_id ?? `lov-${o.id.slice(0, 12)}`;
 
+          try {
             // Market-fallback: if user opted in and market has moved past the signal
             // entry, place at market (respecting an optional max-slippage cap).
             let entryToUse: number | null = o.price;
@@ -227,9 +228,66 @@ export const Route = createFileRoute("/api/public/hooks/process-orders")({
               to_status: r.status,
               payload: { exchange_order_id: r.exchangeOrderId, fill_price: r.fillPrice ?? null },
             });
+            // SL/TP attach failures etc. — order is live but unprotected.
+            // Surface it as an event so monitoring/support can react.
+            if (r.warnings?.length) {
+              await supabaseAdmin.from("order_events").insert({
+                order_id: o.id,
+                user_id: o.user_id,
+                event_type: "execution_warning",
+                from_status: "queued",
+                to_status: r.status,
+                payload: { warnings: r.warnings },
+              });
+            }
             results.placed++;
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);
+
+            // The place call may have timed out AFTER the exchange accepted
+            // it. Before rejecting, try to recover the order by our client id —
+            // otherwise the user has a live position the DB calls "rejected"
+            // (and a retry would double it).
+            const recovered = await fetchExchangeOrderByClientId(
+              acct.exchange_code,
+              creds,
+              o.symbol,
+              clientOrderId,
+            );
+            if (recovered) {
+              await supabaseAdmin
+                .from("orders")
+                .update({
+                  status:
+                    recovered.status === "rejected"
+                      ? "rejected"
+                      : recovered.status === "filled"
+                        ? "filled"
+                        : recovered.status === "partial"
+                          ? "partial"
+                          : "open",
+                  exchange_order_id: recovered.exchangeOrderId,
+                  client_order_id: clientOrderId,
+                  fill_price: recovered.fillPrice ?? null,
+                  filled_quantity: recovered.filledQuantity ?? null,
+                  error_message: null,
+                })
+                .eq("id", o.id);
+              await supabaseAdmin.from("order_events").insert({
+                order_id: o.id,
+                user_id: o.user_id,
+                event_type: "exchange_recovered_after_error",
+                from_status: "queued",
+                to_status: recovered.status,
+                payload: {
+                  exchange_order_id: recovered.exchangeOrderId,
+                  original_error: msg.slice(0, 300),
+                },
+              });
+              results.placed++;
+              continue;
+            }
+
             await markRejected(o.id, o.user_id, msg);
             // Credential / permission failure → flip account to invalid so user is alerted.
             if (/-2014|-2015|-2008|signature|api[-\s]?key|invalid api/i.test(msg)) {
@@ -240,6 +298,77 @@ export const Route = createFileRoute("/api/public/hooks/process-orders")({
             }
             results.failed++;
           }
+        }
+
+        // 1b) Stale-dispatched watchdog: an order stuck in `dispatched` with no
+        // exchange ref means a previous run crashed between claim and place.
+        // Try client-id recovery first; reject only when the venue has no trace.
+        const staleCutoff = new Date(Date.now() - 10 * 60_000).toISOString();
+        const { data: stale } = await supabaseAdmin
+          .from("orders")
+          .select("*")
+          .eq("status", "dispatched")
+          .is("exchange_order_id", null)
+          .lt("updated_at", staleCutoff)
+          .limit(20);
+        for (const o of stale ?? []) {
+          let recovered = null;
+          if (o.exchange_account_id && o.client_order_id) {
+            const { data: acct } = await supabaseAdmin
+              .from("exchange_accounts")
+              .select("exchange_code,encrypted_api_key,encrypted_api_secret,passphrase")
+              .eq("id", o.exchange_account_id)
+              .eq("user_id", o.user_id)
+              .maybeSingle();
+            if (acct && isExchangeExecutable(acct.exchange_code)) {
+              const creds = {
+                apiKey: decryptSecret(acct.encrypted_api_key),
+                apiSecret: decryptSecret(acct.encrypted_api_secret),
+                passphrase: acct.passphrase ? decryptSecret(acct.passphrase) : undefined,
+              };
+              recovered = await fetchExchangeOrderByClientId(
+                acct.exchange_code,
+                creds,
+                o.symbol,
+                o.client_order_id,
+              );
+            }
+          }
+          if (recovered) {
+            await supabaseAdmin
+              .from("orders")
+              .update({
+                status: recovered.status === "rejected" ? "rejected" : recovered.status,
+                exchange_order_id: recovered.exchangeOrderId,
+                fill_price: recovered.fillPrice ?? null,
+                filled_quantity: recovered.filledQuantity ?? null,
+              })
+              .eq("id", o.id);
+            await supabaseAdmin.from("order_events").insert({
+              order_id: o.id,
+              user_id: o.user_id,
+              event_type: "watchdog_recovered",
+              from_status: "dispatched",
+              to_status: recovered.status,
+              payload: { exchange_order_id: recovered.exchangeOrderId },
+            });
+            results.synced++;
+            continue;
+          }
+          await supabaseAdmin
+            .from("orders")
+            .update({ status: "rejected", error_message: "worker timeout: no fill report" })
+            .eq("id", o.id)
+            .eq("status", "dispatched");
+          await supabaseAdmin.from("order_events").insert({
+            order_id: o.id,
+            user_id: o.user_id,
+            event_type: "worker_timeout",
+            from_status: "dispatched",
+            to_status: "rejected",
+            payload: {},
+          });
+          results.failed++;
         }
 
         // 2) Cancel-requested live orders

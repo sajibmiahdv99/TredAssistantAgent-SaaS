@@ -10,6 +10,7 @@
 
 import {
   cancelExchangeOrder,
+  fetchExchangeOrderByClientId,
   fetchExchangeOrderStatus,
   fetchExchangePosition,
   placeExchangeOrder,
@@ -182,11 +183,50 @@ async function placeOrder(row: OrderRow, acc: AccountRow): Promise<void> {
       exchange_order_id: result.exchangeOrderId,
       fill_price: result.fillPrice,
       filled_quantity: result.filledQuantity,
+      ...(result.warnings?.length ? { warnings: result.warnings } : {}),
       raw: result.raw,
     });
+    if (result.warnings?.length) {
+      await insertEvent(row.id, row.user_id, "execution_warning", result.status, result.status, {
+        warnings: result.warnings,
+      });
+    }
     log("place", `${row.symbol} ${row.side} -> ${result.status} (${result.exchangeOrderId})`);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+
+    // The place call may have timed out AFTER the exchange accepted it.
+    // Recover by client order id before rejecting — otherwise the user has a
+    // live position the DB calls "rejected" and a retry would double it.
+    try {
+      const recovered = await fetchExchangeOrderByClientId(
+        acc.exchange_code,
+        credsOf(acc),
+        row.symbol,
+        row.id,
+      );
+      if (recovered) {
+        await sb
+          .from("orders")
+          .update({
+            status: recovered.status,
+            exchange_order_id: recovered.exchangeOrderId,
+            fill_price: recovered.fillPrice ?? null,
+            filled_quantity: recovered.filledQuantity ?? null,
+            error_message: null,
+          })
+          .eq("id", row.id);
+        await insertEvent(row.id, row.user_id, "place_recovered", "dispatched", recovered.status, {
+          exchange_order_id: recovered.exchangeOrderId,
+          original_error: msg.slice(0, 300),
+        });
+        log("place", `${row.symbol} RECOVERED after error (${recovered.exchangeOrderId})`);
+        return;
+      }
+    } catch {
+      // recovery lookup failed too — fall through to reject
+    }
+
     const { error } = await sb
       .from("orders")
       .update({ status: "rejected", error_message: msg.slice(0, 500) })
@@ -292,10 +332,43 @@ async function watchdogStaleDispatched(): Promise<void> {
   if (error) return;
   for (const row of (data ?? []) as OrderRow[]) {
     if (row.exchange_order_id) continue; // worker may still be reporting
+    // Recover first: the order may exist on the exchange even though the
+    // report-back never landed (crash between place and update).
+    const acc = await loadAccount(row.exchange_account_id);
+    let recovered = null;
+    if (acc) {
+      try {
+        recovered = await fetchExchangeOrderByClientId(
+          acc.exchange_code,
+          credsOf(acc),
+          row.symbol,
+          row.id,
+        );
+      } catch {
+        recovered = null;
+      }
+    }
+    if (recovered) {
+      await sb
+        .from("orders")
+        .update({
+          status: recovered.status,
+          exchange_order_id: recovered.exchangeOrderId,
+          fill_price: recovered.fillPrice ?? null,
+          filled_quantity: recovered.filledQuantity ?? null,
+        })
+        .eq("id", row.id);
+      await insertEvent(row.id, row.user_id, "watchdog_recovered", "dispatched", recovered.status, {
+        exchange_order_id: recovered.exchangeOrderId,
+      });
+      log("watchdog", `${row.symbol} stale dispatched -> recovered (${recovered.status})`);
+      continue;
+    }
     await sb
       .from("orders")
       .update({ status: "rejected", error_message: "worker timeout: no fill report" })
-      .eq("id", row.id);
+      .eq("id", row.id)
+      .eq("status", "dispatched");
     await insertEvent(row.id, row.user_id, "worker_timeout", "dispatched", "rejected", {});
     log("watchdog", `${row.symbol} stale dispatched -> rejected`);
   }

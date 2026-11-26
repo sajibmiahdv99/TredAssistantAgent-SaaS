@@ -202,17 +202,46 @@ export async function confirmPendingCryptoPayments(): Promise<{ checked: number;
     const tx = net === "bsc" ? await findBscTransfer(operator, inv.amount, usedTx, new Date(inv.created_at).getTime()) : await findTronTransfer(operator, inv.amount, usedTx, new Date(inv.created_at).getTime());
     if (!tx) continue;
 
-    usedTx.add(tx);
     try {
       const now = new Date();
       const end = new Date(now);
       end.setMonth(end.getMonth() + 1);
 
-      const { error: invUpErr } = await admin
+      // Atomic claim: only the run that flips pending -> paid proceeds. Two
+      // concurrent workers (or a retry loop) must not activate the same
+      // invoice twice.
+      const { data: claimed, error: invUpErr } = await admin
         .from("invoices")
         .update({ status: "paid", paid_at: now.toISOString() })
-        .eq("id", inv.id);
-      if (invUpErr) log("db", `invoice update error: ${invUpErr.message}`);
+        .eq("id", inv.id)
+        .eq("status", "pending")
+        .select("id");
+      if (invUpErr) {
+        log("db", `invoice update error: ${invUpErr.message}`);
+        continue;
+      }
+      if (!claimed?.length) {
+        log("confirm", `${inv.invoice_number} already claimed by another run — skipping`);
+        continue;
+      }
+      usedTx.add(tx); // consume only after the claim succeeded
+
+      // Record the payment with the on-chain reference for audit/support.
+      await admin
+        .from("payments")
+        .insert({
+          user_id: inv.user_id,
+          invoice_id: inv.id,
+          amount: inv.amount,
+          currency: "USD",
+          provider: net === "bsc" ? "crypto_bep20" : "crypto_trc20",
+          external_payment_ref: tx,
+          status: "paid",
+          paid_at: now.toISOString(),
+        })
+        .then(({ error }) => {
+          if (error) log("db", `payment row insert error: ${error.message}`);
+        });
 
       if (inv.subscription_id) {
         const { error: subUpErr } = await admin

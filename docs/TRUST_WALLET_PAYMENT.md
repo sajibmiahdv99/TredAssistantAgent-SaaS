@@ -1,45 +1,55 @@
-# Trust Wallet Payment (USDT TRC-20) — Setup Guide
+# Trust Wallet Payment (USDT TRC-20 / BEP-20) — Setup Guide
 
-This replaces Stripe. No card/Stripe needed — customers pay **USDT on the TRC-20
-network** to the operator's Trust Wallet address, and the subscription activates
-**automatically after on-chain verification** (TronGrid). There is also a
-**manual admin override** for edge cases.
+This replaces Stripe. No card/Stripe needed — customers pay **USDT on the
+TRC-20 or BEP-20 network** to the operator's Trust Wallet address, and the
+subscription activates **automatically after on-chain verification**. There
+is also a **manual admin override** for edge cases.
 
-## Why this exists
-The app's original billing used Stripe (`billing.functions.ts`, `stripe.server.ts`).
-If you don't have Stripe, only a subset of plans were purchasable and the checkout
-was blocked. This crypto path lets you take money with just a Trust Wallet.
+## How the flow works (current)
 
-## How the flow works
 1. User opens **Billing** → **Pay with Trust Wallet (USDT)**.
 2. Selects a plan (from the `plans` DB table) + billing interval (monthly/yearly).
 3. Clicks **Pay with Trust Wallet** → server creates a `pending` subscription +
-   an invoice (`TW-...`) and returns the operator's USDT (TRC-20) address + amount.
-4. User sends USDT from Trust Wallet to that address (network = **TRC-20**).
-5. User pastes the **transaction hash (TXID)** and clicks **Verify & Activate**.
-6. `verifyCryptoPayment` queries TronGrid for confirmed USDT (TRC-20) transfers to
-   the operator address, validates the tx, token, amount (>= invoice), then marks the
-   invoice paid and activates the subscription (+1 month). The billing page refreshes.
-7. If auto-verify fails for any reason, admin can **Grant** access manually on the
-   Admin → Subscriptions page (`adminGrantSubscription`).
+   an invoice and returns the operator's USDT receive address + amount.
+   Invoice numbers encode the network (`-BSC-` for BEP-20, otherwise TRC-20).
+4. User sends USDT from Trust Wallet to that address.
+5. **Auto-confirm (no TXID needed):** the production worker runs
+   `confirmPendingCryptoPayments()` every 60s
+   (`src/lib/crypto-pay.confirm.server.ts`). It scans on-chain transfers to
+   the operator address — TronGrid for TRC-20, BSC RPC `eth_getLogs` for
+   BEP-20 — and matches an invoice when:
+   - the amount is within ±0.5 USDT of the invoice (absorbs exchange
+     network fees),
+   - the transfer **landed at/after** the invoice was created (a stale tx
+     can't confirm a newer invoice),
+   - the tx hash hasn't confirmed another invoice (`payments.
+     external_payment_ref` records it for audit),
+   - the invoice flip `pending → paid` is atomic, so concurrent workers
+     can't double-activate.
+6. The user can also paste the TXID manually (`verifyCryptoPayment`) as a
+   fallback, and admin can **Grant** access manually on Admin → Subscriptions.
 
 ## Configuration (required)
-Add to `.env`:
 
 ```env
-# Operator's Trust Wallet USDT (TRC-20) receive address (starts with T...)
-USDT_TRON_ADDRESS=TYourWalletAddress
+# Operator's Trust Wallet USDT receive addresses
+USDT_TRON_ADDRESS=TYourTronAddress      # TRC-20 (starts with T...)
+BSC_USDT_ADDRESS=0xYourBscAddress       # BEP-20 (starts with 0x...)
 
 # Free TronGrid API key — https://www.trongrid.io/ (dashboard -> API keys)
 TRONGRID_API_KEY=your_key_here
 ```
 
 Notes:
-- **USDT_TRON_ADDRESS** must be a valid **TRC-20** address (Tron network, starts with `T`).
 - The **TRC-20 USDT contract** is fixed:
   `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` (decimals = 6).
-- If `TRONGRID_API_KEY` is absent, verification still queries TronGrid without a key
-  (rate-limited but works).
+- The **BEP-20 USDT contract** is fixed:
+  `0x55d398326f99059fF775485246999027B3197955` (decimals = 18).
+- If `TRONGRID_API_KEY` is absent, verification still queries TronGrid without
+  a key (rate-limited but works).
+- BSC scanning uses public RPCs with failover; the scan window is ~8000
+  blocks (~6.7h), so invoices pending longer than that need manual TXID
+  verification or an admin grant.
 
 ## Admin override (manual)
 Admin → Subscriptions → each row has a **Grant** button:
@@ -48,14 +58,16 @@ Admin → Subscriptions → each row has a **Grant** button:
 - Also usable to grant complimentary access.
 
 ## What changed
-- `src/lib/crypto-pay.functions.ts` — new server functions:
+- `src/lib/crypto-pay.functions.ts` — server functions:
   `getCryptoPayInfo`, `startCryptoPayment`, `verifyCryptoPayment`.
-- `src/components/CryptoPay.tsx` — new billing UI (plan select, address copy,
+- `src/lib/crypto-pay.confirm.server.ts` — worker-side auto-confirm
+  (TRC-20 + BEP-20) with atomic invoice claim and `payments` audit rows.
+- `src/components/CryptoPay.tsx` — billing UI (plan select, address copy,
   tx-hash verify, live status).
 - `src/routes/_authenticated/app.billing.tsx` — renders `<CryptoPay />`.
-- `src/lib/admin.functions.ts` — new `adminGrantSubscription`.
+- `src/lib/admin.functions.ts` — `adminGrantSubscription`.
 - `src/routes/_authenticated/admin.subscriptions.tsx` — Grant dialog.
-- `.env.example` — added `USDT_TRON_ADDRESS`, `TRONGRID_API_KEY`.
+- `.env.example` — `USDT_TRON_ADDRESS`, `BSC_USDT_ADDRESS`, `TRONGRID_API_KEY`.
 
 ## Plan prices
 Plans are read from the `plans` DB table (edit in Admin → Plans). Set

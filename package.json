@@ -1,5 +1,7 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "tredassistant-agent-saas",
+  "version": "1.0.0",
+  "description": "TredAssistantAgent — automated crypto signal trading SaaS (TanStack Start + Supabase + execution worker)",
   "private": true,
   "sideEffects": false,
   "type": "module",
