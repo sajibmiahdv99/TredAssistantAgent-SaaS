@@ -27,11 +27,51 @@ type OrderUpdate = {
   accountId: string;
   clientOrderId: string | null;
   exchangeOrderId: string | null;
-  status: string; // "filled" | "canceled" | "partially_filled"
+  status: string; // "filled" | "cancelled" | "partial" | "rejected"
   fillPrice: number | null;
   filledQuantity: number | null;
   raw: unknown;
 };
+
+// ---- Status mapping (exported for tests) -----------------------------------
+// DB check constraint uses the British spelling "cancelled" — writing
+// "canceled" violates orders_status_check and silently drops the update.
+// Returns null for statuses we intentionally ignore (e.g. NEW).
+
+export function mapBinanceOrderStatus(orderStatus: string): string | null {
+  // ORDER_TRADE_UPDATE field X = order status (NEW/PARTIALLY_FILLED/FILLED/…)
+  switch (orderStatus) {
+    case "FILLED":
+      return "filled";
+    case "PARTIALLY_FILLED":
+      return "partial";
+    case "CANCELED":
+    case "EXPIRED":
+      return "cancelled";
+    case "REJECTED":
+      return "rejected";
+    default:
+      return null; // NEW etc. — REST polling covers it
+  }
+}
+
+export function mapBybitWsOrderStatus(orderStatus: string): string | null {
+  switch (orderStatus) {
+    case "Filled":
+      return "filled";
+    case "PartiallyFilled":
+      return "partial";
+    case "Cancelled":
+    case "Canceled":
+    case "PartiallyFilledCanceled":
+    case "Deactivated":
+      return "cancelled";
+    case "Rejected":
+      return "rejected";
+    default:
+      return null;
+  }
+}
 
 // ---- Logging ---------------------------------------------------------------
 
@@ -43,7 +83,9 @@ function log(msg: string): void {
 
 async function applyOrderUpdate(sb: SupabaseClient, update: OrderUpdate): Promise<void> {
   // Match by client_order_id first (we set it when placing), else by
-  // exchange_order_id. Never clobber terminal states.
+  // exchange_order_id. Only non-terminal orders may transition — a fill must
+  // never resurrect a cancelled/rejected/closed order, and a late cancel must
+  // never clobber a fill.
   const q = sb
     .from("orders")
     .update({
@@ -53,7 +95,8 @@ async function applyOrderUpdate(sb: SupabaseClient, update: OrderUpdate): Promis
       ...(update.exchangeOrderId ? { exchange_order_id: update.exchangeOrderId } : {}),
       updated_at: new Date().toISOString(),
     })
-    .eq("exchange_account_id", update.accountId);
+    .eq("exchange_account_id", update.accountId)
+    .in("status", ["dispatched", "open", "partial"]);
 
   if (update.clientOrderId) {
     q.eq("client_order_id", update.clientOrderId);
@@ -135,10 +178,7 @@ async function startBinanceStream(sb: SupabaseClient, account: AccountRow): Prom
       };
       if (msg.e !== "ORDER_TRADE_UPDATE" || !msg.o) return;
       const o = msg.o;
-      const execType = o.X ?? "";
-      let status: string | null = null;
-      if (execType === "TRADE" || execType === "FILLED") status = "filled";
-      else if (execType === "CANCELED" || execType === "EXPIRED") status = "canceled";
+      const status = mapBinanceOrderStatus(o.X ?? "");
       if (!status) return;
 
       void applyOrderUpdate(sb, {
@@ -234,14 +274,7 @@ async function startBybitStream(sb: SupabaseClient, account: AccountRow): Promis
       }
       if (msg.topic !== "order" || !Array.isArray(msg.data)) return;
       for (const o of msg.data) {
-        const statusMap: Record<string, string> = {
-          Filled: "filled",
-          Cancelled: "canceled",
-          Canceled: "canceled",
-          Rejected: "rejected",
-          PartiallyFilledCanceled: "canceled",
-        };
-        const status = statusMap[o.orderStatus ?? ""] ?? null;
+        const status = mapBybitWsOrderStatus(o.orderStatus ?? "");
         if (!status) continue;
         void applyOrderUpdate(sb, {
           accountId: account.id,

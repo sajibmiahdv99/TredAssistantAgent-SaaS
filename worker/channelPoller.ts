@@ -38,6 +38,25 @@ function log(msg: string): void {
   console.log(`[channel-poller] ${new Date().toISOString()} ${msg}`);
 }
 
+/**
+ * Pure, exported for tests: given the fetched messages (any order) and the
+ * channel cursor, return the deduped, oldest-first list of messages that still
+ * need ingestion.
+ */
+export function planNewMessages<T extends { id: number }>(
+  messages: T[],
+  lastProcessed: number | null,
+): T[] {
+  const seen = new Set<number>();
+  return messages
+    .filter((m) => {
+      if (seen.has(m.id)) return false;
+      seen.add(m.id);
+      return lastProcessed == null || m.id > lastProcessed;
+    })
+    .sort((a, b) => a.id - b.id);
+}
+
 export async function pollSignalChannelsOnce(): Promise<{
   checked: number;
   ingested: number;
@@ -119,27 +138,43 @@ export async function pollSignalChannelsOnce(): Promise<{
       const messages = await fetchChannelMessages(session, chatCode, 20);
       if (!messages.length) continue;
 
-      const seen = new Set<number>();
-      for (const m of messages) {
-        if (seen.has(m.id)) continue;
-        seen.add(m.id);
-        if (ch.last_processed_message_id != null && m.id <= ch.last_processed_message_id) {
-          continue; // already processed
-        }
-        // Ingest via the same pipeline the bot webhook uses.
+      // Oldest-first so the cursor can advance monotonically.
+      const pending = planNewMessages(messages, ch.last_processed_message_id);
+
+      // Gap detection: if the oldest fetched message is already newer than
+      // last_processed + 1, messages between the two were never ingested (the
+      // channel produced more than one page between polls). We can't page
+      // backwards with this fetch helper, so at least make it visible.
+      const oldestFetched = Math.min(...messages.map((m) => m.id));
+      if (
+        ch.last_processed_message_id != null &&
+        oldestFetched > ch.last_processed_message_id + 1
+      ) {
+        log(
+          `channel ${ch.name}: GAP — messages ${ch.last_processed_message_id + 1}..${oldestFetched - 1} missed (increase poll frequency)`,
+        );
+      }
+
+      // Ingest in order and advance the cursor ONLY past messages that were
+      // actually ingested. Previously the cursor jumped to the newest fetched
+      // id even when an ingest failed — permanently dropping those signals.
+      let newCursor = ch.last_processed_message_id;
+      for (const m of pending) {
         const res = await ingestSignalForSource(m.text, sourceId).catch((e: unknown) => {
           log(`channel ${ch.name}: ingest error: ${String(e).slice(0, 120)}`);
           return null;
         });
-        if (res && (res.queued ?? 0) > 0) ingested += res.queued;
+        if (res == null) break; // leave cursor before this message; retry next tick
+        if ((res.queued ?? 0) > 0) ingested += res.queued;
+        newCursor = m.id;
       }
 
-      // Advance cursor to newest seen id.
-      const newest = Math.max(...messages.map((m) => m.id));
-      await sb
-        .from("personal_signal_channels")
-        .update({ last_processed_message_id: newest })
-        .eq("id", ch.id);
+      if (newCursor !== ch.last_processed_message_id && newCursor != null) {
+        await sb
+          .from("personal_signal_channels")
+          .update({ last_processed_message_id: newCursor })
+          .eq("id", ch.id);
+      }
     } catch (e) {
       const msg = String(e);
       const flood = /FLOOD_WAIT_(\d+)/.exec(msg);
