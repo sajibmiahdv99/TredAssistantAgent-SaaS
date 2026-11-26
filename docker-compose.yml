@@ -37,6 +37,9 @@ services:
       - "traefik.http.routers.tred.tls.certresolver=letsencrypt"
       - "traefik.http.services.tred.loadbalancer.server.port=3000"
 
+  # The scheduler drives the app's internal execution hooks. Never run
+  # worker/execution-worker.ts against the same database — that legacy daemon
+  # claims and places orders on its own and will double-execute.
   worker:
     build:
       context: .
@@ -46,7 +49,11 @@ services:
       - .env
     environment:
       - NODE_ENV=production
-    command: ["npx", "tsx", "worker/execution-worker.ts"]
+      - APP_INTERNAL_URL=http://app:3000
+    command: ["npx", "tsx", "worker/production-worker.ts"]
+    depends_on:
+      app:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - traefik-network
